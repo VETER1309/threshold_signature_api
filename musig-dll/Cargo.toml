@@ -1,0 +1,8 @@
+[package]
+name = "musig-dll"
+authors = ['The ChainX Authors']
+edition = "2018"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib"]

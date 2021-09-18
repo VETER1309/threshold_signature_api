@@ -1,0 +1,14 @@
+{
+  "name": "musig-js",
+  "version": "1.0.0",
+  "description": "The js version of musig api",
+  "main": "example.js",
+  "scripts": {
+    "example": "LD_LIBRARY_PATH=../../target/debug node src/example.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ffi": "^2.3.0"
+  }
+}

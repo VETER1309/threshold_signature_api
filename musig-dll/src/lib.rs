@@ -6,7 +6,7 @@ use schnorrkel::{
         aggregate_public_key_from_slice, collect_cosignatures, AggregatePublicKey, Commitment,
         Cosignature, Reveal,
     },
-    signing_context, Keypair, PublicKey,
+    signing_context, Keypair, PublicKey, SecretKey,
 };
 
 #[no_mangle]
@@ -23,15 +23,16 @@ pub extern "C" fn fix_linking_when_not_using_stdlib() {
 // TODO: Test these interfaces！！！
 // TODO: Optimize these functions！！！
 #[no_mangle]
-pub extern "C" fn get_my_commit(bytes: *const c_char) -> *mut c_char {
-    let c_str = unsafe {
-        assert!(!bytes.is_null());
+pub extern "C" fn get_my_commit(privkey: *const c_char) -> *mut c_char {
+    let c_priv = unsafe {
+        assert!(!privkey.is_null());
 
-        CStr::from_ptr(bytes)
+        CStr::from_ptr(privkey)
     };
 
-    let r_str = c_str.to_str().unwrap();
-    let keypair = Keypair::from_half_ed25519_bytes(&hex::decode(r_str).unwrap()[..]).unwrap();
+    let r_priv = c_priv.to_str().unwrap();
+    let secret = SecretKey::from_bytes(&hex::decode(r_priv).unwrap()[..]).unwrap();
+    let keypair = Keypair::from(secret);
     let t = signing_context(b"multi-sig").bytes(b"We are legion!");
     let musig = keypair.musig(t);
     let commit_hex = hex::encode(&musig.our_commitment().0[..]);
@@ -53,7 +54,8 @@ pub extern "C" fn get_my_reveal(
     };
 
     let r_priv = c_priv.to_str().unwrap();
-    let keypair = Keypair::from_half_ed25519_bytes(&hex::decode(r_priv).unwrap()[..]).unwrap();
+    let secret = SecretKey::from_bytes(&hex::decode(r_priv).unwrap()[..]).unwrap();
+    let keypair = Keypair::from(secret);
     let t = signing_context(b"multi-sig").bytes(b"We are legion!");
     let mut musig = keypair.musig(t);
     // construct the public key of all people
@@ -108,7 +110,8 @@ pub extern "C" fn get_my_cosign(
     };
 
     let r_priv = c_priv.to_str().unwrap();
-    let keypair = Keypair::from_half_ed25519_bytes(&hex::decode(r_priv).unwrap()[..]).unwrap();
+    let secret = SecretKey::from_bytes(&hex::decode(r_priv).unwrap()[..]).unwrap();
+    let keypair = Keypair::from(secret);
     let t = signing_context(b"multi-sig").bytes(b"We are legion!");
     // enter the revealing stage
     let mut musig = keypair.musig(t).reveal_stage();

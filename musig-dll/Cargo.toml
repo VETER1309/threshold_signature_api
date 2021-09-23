@@ -8,7 +8,8 @@ version = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-schnorrkel = "0.10.1"
+schnorrkel = {git = "https://github.com/chainx-org/schnorrkel", branch = "master"}
 hex = "0.4.3"
 hex-literal = "0.3.1"
 libc = "0.2"
+merlin = "3.0"

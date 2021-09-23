@@ -1,10 +1,11 @@
 use libc::c_char;
+use merlin::Transcript;
 use std::ffi::{CStr, CString};
 
 use schnorrkel::{
     musig::{
-        aggregate_public_key_from_slice, collect_cosignatures, AggregatePublicKey, Commitment,
-        Cosignature, Reveal,
+        aggregate_public_key_from_slice, collect_cosignatures, AggregatePublicKey, CommitStage,
+        Commitment, CosignStage, Cosignature, MuSig, Reveal, RevealStage,
     },
     signing_context, Keypair, PublicKey, SecretKey,
 };
@@ -19,45 +20,47 @@ pub extern "C" fn fix_linking_when_not_using_stdlib() {
     panic!()
 }
 
-// TODO: Check if there are some logic problems！！！
-// TODO: Test these interfaces！！！
-// TODO: Optimize these functions！！！
 #[no_mangle]
-pub extern "C" fn get_my_commit(privkey: *const c_char) -> *mut c_char {
+pub extern "C" fn get_musig(
+    privkey: *const c_char,
+) -> *mut MuSig<Transcript, CommitStage<Keypair>> {
     let c_priv = unsafe {
         assert!(!privkey.is_null());
 
         CStr::from_ptr(privkey)
     };
-
     let r_priv = c_priv.to_str().unwrap();
     let secret = SecretKey::from_bytes(&hex::decode(r_priv).unwrap()[..]).unwrap();
     let keypair = Keypair::from(secret);
     let t = signing_context(b"multi-sig").bytes(b"We are legion!");
-    let musig = keypair.musig(t);
+    let musig = MuSig::new(keypair, t);
+    Box::into_raw(Box::new(musig))
+}
+
+// TODO: Check if there are some logic problems！！！
+// TODO: Test these interfaces！！！
+// TODO: Optimize these functions！！！
+#[no_mangle]
+pub extern "C" fn get_my_commit(
+    musig: *mut MuSig<Transcript, CommitStage<Keypair>>,
+) -> *mut c_char {
+    let musig = unsafe {
+        assert!(!musig.is_null());
+        &mut *musig
+    };
     let commit_hex = hex::encode(&musig.our_commitment().0[..]);
     let c_commit_str = CString::new(commit_hex).unwrap();
     c_commit_str.into_raw()
 }
 
 #[no_mangle]
-pub extern "C" fn get_my_reveal(
-    privkey: *const c_char,
+pub extern "C" fn reveal_stage(
+    musig: *mut MuSig<Transcript, CommitStage<Keypair>>,
     commits: *const c_char,
     pubkeys: *const c_char,
-) -> *mut c_char {
-    // construct musig state
-    let c_priv = unsafe {
-        assert!(!privkey.is_null());
+) -> *mut MuSig<Transcript, RevealStage<Keypair>> {
+    let musig = unsafe { &mut *musig };
 
-        CStr::from_ptr(privkey)
-    };
-
-    let r_priv = c_priv.to_str().unwrap();
-    let secret = SecretKey::from_bytes(&hex::decode(r_priv).unwrap()[..]).unwrap();
-    let keypair = Keypair::from(secret);
-    let t = signing_context(b"multi-sig").bytes(b"We are legion!");
-    let mut musig = keypair.musig(t);
     // construct the public key of all people
     let c_pubkeys = unsafe {
         assert!(!pubkeys.is_null());
@@ -90,31 +93,34 @@ pub extern "C" fn get_my_reveal(
         let publickey = PublicKey::from_bytes(&r_pubkeys_bytes[n..n + 32]).unwrap();
         musig.add_their_commitment(publickey, commit).unwrap();
     }
-    let reveal = musig.reveal_stage().our_reveal().to_owned();
-    let reveal_hex = hex::encode(reveal.0);
-    let c_commit_str = CString::new(reveal_hex).unwrap();
-    c_commit_str.into_raw()
+
+    let musig = musig.clone().reveal_stage();
+
+    Box::into_raw(Box::new(musig))
 }
 
 #[no_mangle]
-pub extern "C" fn get_my_cosign(
-    privkey: *const c_char,
+pub extern "C" fn get_my_reveal(
+    musig: *mut MuSig<Transcript, RevealStage<Keypair>>,
+) -> *mut c_char {
+    let musig = unsafe { &mut *musig };
+
+    let reveal = musig.our_reveal();
+    let reveal_hex = hex::encode(reveal.0);
+    let c_reveal_str = CString::new(reveal_hex).unwrap();
+    c_reveal_str.into_raw()
+}
+
+#[no_mangle]
+pub extern "C" fn cosign_stage(
+    musig: *mut MuSig<Transcript, RevealStage<Keypair>>,
     reveals: *const c_char,
     pubkeys: *const c_char,
-) -> *mut c_char {
-    // construct musig state
-    let c_priv = unsafe {
-        assert!(!privkey.is_null());
-
-        CStr::from_ptr(privkey)
+) -> *mut MuSig<Transcript, CosignStage> {
+    let musig = unsafe {
+        assert!(!musig.is_null());
+        &mut *musig
     };
-
-    let r_priv = c_priv.to_str().unwrap();
-    let secret = SecretKey::from_bytes(&hex::decode(r_priv).unwrap()[..]).unwrap();
-    let keypair = Keypair::from(secret);
-    let t = signing_context(b"multi-sig").bytes(b"We are legion!");
-    // enter the revealing stage
-    let mut musig = keypair.musig(t).reveal_stage();
     // construct the public key of all people
     let c_pubkeys = unsafe {
         assert!(!pubkeys.is_null());
@@ -148,7 +154,17 @@ pub extern "C" fn get_my_cosign(
         musig.add_their_reveal(publickey, reveal).unwrap();
     }
     // get cosign
-    let cosign = musig.cosign_stage().our_cosignature().to_owned();
+    let musig = musig.clone().cosign_stage();
+    Box::into_raw(Box::new(musig))
+}
+
+#[no_mangle]
+pub extern "C" fn get_my_cosign(musig: *mut MuSig<Transcript, CosignStage>) -> *mut c_char {
+    let musig = unsafe {
+        assert!(!musig.is_null());
+        &mut *musig
+    };
+    let cosign = musig.our_cosignature();
     let cosign_hex = hex::encode(cosign.0);
     let c_cosign_str = CString::new(cosign_hex).unwrap();
     c_cosign_str.into_raw()

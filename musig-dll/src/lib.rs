@@ -16,6 +16,22 @@ pub extern "C" fn fix_linking_when_not_using_stdlib() {
 }
 
 #[no_mangle]
+pub extern "C" fn get_my_pubkey(
+    privkey: *const c_char,
+) -> *const c_char {
+    let c_priv = unsafe {
+        assert!(!privkey.is_null());
+
+        CStr::from_ptr(privkey)
+    };
+    let r_priv = c_priv.to_str().unwrap();
+    let secret = SecretKey::from_bytes(&hex::decode(r_priv).unwrap()[..]).unwrap();
+    let pubkey_hex = hex::encode(secret.to_public().to_bytes());
+    let c_pubkey_str = CString::new(pubkey_hex).unwrap();
+    c_pubkey_str.into_raw()
+}
+
+#[no_mangle]
 pub extern "C" fn get_musig(
     privkey: *const c_char,
 ) -> *mut MuSig<Transcript, CommitStage<Keypair>> {
@@ -64,7 +80,7 @@ pub extern "C" fn reveal_stage(
     };
     let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str().unwrap()).unwrap();
     // ensure that it is the correct public key length
-    assert!(r_pubkeys_bytes.len() % 32 == 0);
+    assert_eq!(r_pubkeys_bytes.len() % 32, 0);
     let pubkeys_num = r_pubkeys_bytes.len() / 32;
 
     let c_commits = unsafe {
@@ -75,7 +91,7 @@ pub extern "C" fn reveal_stage(
 
     let commits_bytes = hex::decode(c_commits.to_str().unwrap()).unwrap();
     // ensure that it is the correct commit length
-    assert!(commits_bytes.len() % 16 == 0);
+    assert_eq!(commits_bytes.len() % 16, 0);
     let commit_num = commits_bytes.len() / 16;
     // make sure the number of public keys and the number of commits are the same
     assert_eq!(commit_num, pubkeys_num);
@@ -124,7 +140,7 @@ pub extern "C" fn cosign_stage(
 
     let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str().unwrap()).unwrap();
     // ensure that it is the correct public key length
-    assert!(r_pubkeys_bytes.len() % 32 == 0);
+    assert_eq!(r_pubkeys_bytes.len() % 32, 0);
     let pubkeys_num = r_pubkeys_bytes.len() / 32;
 
     let c_reveals = unsafe {
@@ -135,10 +151,10 @@ pub extern "C" fn cosign_stage(
 
     let reveals_bytes = hex::decode(c_reveals.to_str().unwrap()).unwrap();
     // ensure that it is the correct reveal length
-    assert!(reveals_bytes.len() % 96 == 0);
+    assert_eq!(reveals_bytes.len() % 96, 0);
     let reveals_num = reveals_bytes.len() / 96;
     // make sure the number of public keys and the number of commits are the same
-    assert!(reveals_num == pubkeys_num);
+    assert_eq!(reveals_num, pubkeys_num);
 
     for n in 0..pubkeys_num {
         let mut bytes = [0u8; 96];
@@ -179,10 +195,9 @@ pub extern "C" fn get_signature(
 
         CStr::from_ptr(pubkeys)
     };
-
     let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str().unwrap()).unwrap();
     // ensure that it is the correct public key length
-    assert!(r_pubkeys_bytes.len() % 32 == 0);
+    assert_eq!(r_pubkeys_bytes.len() % 32, 0);
     let pubkeys_num = r_pubkeys_bytes.len() / 32;
 
     // construct the cosign of all people
@@ -194,7 +209,7 @@ pub extern "C" fn get_signature(
 
     let r_cosign_bytes = hex::decode(c_cosign.to_str().unwrap()).unwrap();
     // ensure that it is the correct cosign length
-    assert!(r_cosign_bytes.len() % 32 == 0);
+    assert_eq!(r_cosign_bytes.len() % 32, 0);
     let cosign_num = r_cosign_bytes.len() / 32;
 
     let c_reveals = unsafe {
@@ -205,7 +220,7 @@ pub extern "C" fn get_signature(
 
     let reveals_bytes = hex::decode(c_reveals.to_str().unwrap()).unwrap();
     // ensure that it is the correct reveal length
-    assert!(reveals_bytes.len() % 96 == 0);
+    assert_eq!(reveals_bytes.len() % 96, 0);
     let reveals_num = reveals_bytes.len() / 96;
     // make sure the number of public keys and the number of commits are the same
     assert!(reveals_num == pubkeys_num && cosign_num == pubkeys_num);
@@ -239,7 +254,7 @@ pub extern "C" fn get_agg_pubkey(pubkeys: *const c_char) -> *mut c_char {
 
     let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str().unwrap()).unwrap();
     // ensure that it is the correct public key length
-    assert!(r_pubkeys_bytes.len() % 32 == 0);
+    assert_eq!(r_pubkeys_bytes.len() % 32, 0);
     let pubkeys_num = r_pubkeys_bytes.len() / 32;
 
     let mut pubkeys = Vec::<PublicKey>::new();

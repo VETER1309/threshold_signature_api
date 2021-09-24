@@ -2,10 +2,6 @@ on: [push, pull_request]
 
 name: threshold-signature
 
-defaults:
-  run:
-    working-directory: ./musig-dll
-
 jobs:
   check:
     name: Check
@@ -31,7 +27,9 @@ jobs:
           components: rustfmt, rust-src, clippy
 
       - name: Run cargo check
-        run: cargo check
+        run: |
+          cd musig-dll
+          cargo check
 
   test:
     name: Test Suite
@@ -55,7 +53,9 @@ jobs:
           components: rustfmt, rust-src, clippy
 
       - name: Run cargo test
-        run: cargo test
+        run: |
+          cd musig-dll
+          cargo test
 
   lints:
     name: Lints
@@ -79,7 +79,11 @@ jobs:
           components: rustfmt, rust-src, clippy
 
       - name: Run cargo fmt
-        run: cargo fmt --all -- --check
+        run: |
+          cd musig-dll
+          cargo fmt --all -- --check
 
       - name: Run cargo clippy
-        run: cargo clippy --all --all-targets -- -D warnings
+        run: |
+          cd musig-dll
+          cargo clippy --all --all-targets -- -D warnings

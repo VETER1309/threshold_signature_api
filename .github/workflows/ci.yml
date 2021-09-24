@@ -25,8 +25,9 @@ jobs:
           components: rustfmt, rust-src, clippy
 
       - name: Run cargo check
-        uses: actions-rs/cargo/musig-dll@v1
+        uses: actions-rs/cargo@v1
         with:
+          path: ./musig-dll
           command: check
 
   test:
@@ -51,13 +52,15 @@ jobs:
           components: rustfmt, rust-src, clippy
 
       - name: Run cargo check
-        uses: actions-rs/cargo/musig-dll@v1
+        uses: actions-rs/cargo@v1
         with:
+          path: ./musig-dll
           command: check
 
       - name: Run cargo test
-        uses: actions-rs/cargo/musig-dll@v1
+        uses: actions-rs/cargo@v1
         with:
+          path: ./musig-dll
           command: test
 
   lints:
@@ -82,13 +85,15 @@ jobs:
           components: rustfmt, rust-src, clippy
 
       - name: Run cargo fmt
-        uses: actions-rs/cargo/musig-dll@v1
+        uses: actions-rs/cargo@v1
         with:
+          path: ./musig-dll
           command: fmt
           args: --all -- --check
 
       - name: Run cargo clippy
-        uses: actions-rs/cargo/musig-dll@v1
+        uses: actions-rs/cargo@v1
         with:
+          path: ./musig-dll
           command: clippy
           args: --all --all-targets -- -D warnings

@@ -14,6 +14,10 @@ jobs:
       
       - name: Checkout sources
         uses: actions/checkout@v2
+        
+      - name: Setup Work Dir
+        run: |
+          cd musig-dll
 
       - name: Install nightly toolchain
         uses: actions-rs/toolchain@v1
@@ -40,6 +44,10 @@ jobs:
       
       - name: Checkout sources
         uses: actions/checkout@v2
+        
+      - name: Setup Work Dir
+        run: |
+          cd musig-dll
 
       - name: Install nightly toolchain
         uses: actions-rs/toolchain@v1
@@ -70,6 +78,10 @@ jobs:
       
       - name: Checkout sources
         uses: actions/checkout@v2
+
+      - name: Setup Work Dir
+        run: |
+          cd musig-dll
 
       - name: Install nightly toolchain
         uses: actions-rs/toolchain@v1

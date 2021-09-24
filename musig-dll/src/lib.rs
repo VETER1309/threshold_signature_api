@@ -16,9 +16,7 @@ pub extern "C" fn fix_linking_when_not_using_stdlib() {
 }
 
 #[no_mangle]
-pub extern "C" fn get_my_pubkey(
-    privkey: *const c_char,
-) -> *const c_char {
+pub extern "C" fn get_my_pubkey(privkey: *const c_char) -> *const c_char {
     let c_priv = unsafe {
         assert!(!privkey.is_null());
 
@@ -328,6 +326,6 @@ mod tests {
         let t = signing_context(b"multi-sig").bytes(b"We are legion!");
         let pubkey = convert_char_to_str(get_agg_pubkey(pubkeys));
         let pubkey = PublicKey::from_bytes(&hex::decode(pubkey).unwrap()).unwrap();
-        assert!(pubkey.verify(t, &signature).is_ok());
+        assert!(pubkey.verify(t.clone(), &signature).is_ok());
     }
 }

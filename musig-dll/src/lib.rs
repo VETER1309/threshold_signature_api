@@ -1,6 +1,9 @@
 use libc::c_char;
 use merlin::Transcript;
-use std::ffi::{CStr, CString};
+use std::{
+    ffi::{CStr, CString},
+    ptr::null_mut,
+};
 
 use schnorrkel::{
     musig::{
@@ -10,55 +13,81 @@ use schnorrkel::{
     signing_context, Keypair, PublicKey, SecretKey,
 };
 
-#[allow(dead_code)]
-pub extern "C" fn fix_linking_when_not_using_stdlib() {
-    panic!()
-}
+mod error;
+
+use error::Error;
 
 #[no_mangle]
-pub extern "C" fn get_my_pubkey(privkey: *const c_char) -> *const c_char {
+pub extern "C" fn get_my_pubkey(privkey: *const c_char) -> *mut c_char {
+    match r_get_my_pubkey(privkey) {
+        Ok(pubkey) => pubkey,
+        Err(_) => Error::InvalidSecretBytes.into(),
+    }
+}
+
+pub fn r_get_my_pubkey(privkey: *const c_char) -> Result<*mut c_char, Error> {
     let c_priv = unsafe {
-        assert!(!privkey.is_null());
+        if privkey.is_null() {
+            return Err(Error::InvalidSecretBytes);
+        }
 
         CStr::from_ptr(privkey)
     };
-    let r_priv = c_priv.to_str().unwrap();
-    let secret = SecretKey::from_bytes(&hex::decode(r_priv).unwrap()[..]).unwrap();
+
+    let r_priv = c_priv.to_str()?;
+    let secret_bytes = hex::decode(r_priv)?;
+
+    let secret = SecretKey::from_bytes(&secret_bytes[..])?;
     let pubkey_hex = hex::encode(secret.to_public().to_bytes());
-    let c_pubkey_str = CString::new(pubkey_hex).unwrap();
-    c_pubkey_str.into_raw()
+    let c_pubkey_str = CString::new(pubkey_hex)?;
+    Ok(c_pubkey_str.into_raw())
 }
 
 #[no_mangle]
 pub extern "C" fn get_musig(
     privkey: *const c_char,
 ) -> *mut MuSig<Transcript, CommitStage<Keypair>> {
+    match r_get_musig(privkey) {
+        Ok(musig) => musig,
+        Err(_) => null_mut(),
+    }
+}
+
+pub fn r_get_musig(
+    privkey: *const c_char,
+) -> Result<*mut MuSig<Transcript, CommitStage<Keypair>>, Error> {
     let c_priv = unsafe {
-        assert!(!privkey.is_null());
+        if privkey.is_null() {
+            return Err(Error::NullMusig);
+        }
 
         CStr::from_ptr(privkey)
     };
-    let r_priv = c_priv.to_str().unwrap();
-    let secret = SecretKey::from_bytes(&hex::decode(r_priv).unwrap()[..]).unwrap();
+    let r_priv = c_priv.to_str()?;
+    let secret_bytes = hex::decode(r_priv)?;
+
+    let secret = SecretKey::from_bytes(&secret_bytes[..])?;
     let keypair = Keypair::from(secret);
     let t = signing_context(b"multi-sig").bytes(b"We are legion!");
     let musig = MuSig::new(keypair, t);
-    Box::into_raw(Box::new(musig))
+    Ok(Box::into_raw(Box::new(musig)))
 }
 
-// TODO: Check if there are some logic problems！！！
-// TODO: Test these interfaces！！！
-// TODO: Optimize these functions！！！
 #[no_mangle]
 pub extern "C" fn get_my_commit(
     musig: *mut MuSig<Transcript, CommitStage<Keypair>>,
 ) -> *mut c_char {
     let musig = unsafe {
-        assert!(!musig.is_null());
+        if musig.is_null() {
+            return Error::NullMusig.into();
+        }
         &mut *musig
     };
     let commit_hex = hex::encode(&musig.our_commitment().0[..]);
-    let c_commit_str = CString::new(commit_hex).unwrap();
+    let c_commit_str = match CString::new(commit_hex) {
+        Ok(bytes) => bytes,
+        Err(_) => return Error::InvalidCommitBytes.into(),
+    };
     c_commit_str.into_raw()
 }
 
@@ -68,54 +97,86 @@ pub extern "C" fn reveal_stage(
     commits: *const c_char,
     pubkeys: *const c_char,
 ) -> *mut MuSig<Transcript, RevealStage<Keypair>> {
+    match r_reveal_stage(musig, commits, pubkeys) {
+        Ok(musig) => musig,
+        Err(_) => null_mut(),
+    }
+}
+
+pub fn r_reveal_stage(
+    musig: *mut MuSig<Transcript, CommitStage<Keypair>>,
+    commits: *const c_char,
+    pubkeys: *const c_char,
+) -> Result<*mut MuSig<Transcript, RevealStage<Keypair>>, Error> {
     let musig = unsafe { &mut *musig };
 
     // construct the public key of all people
     let c_pubkeys = unsafe {
-        assert!(!pubkeys.is_null());
+        if pubkeys.is_null() {
+            return Err(Error::InvalidPublicBytes);
+        }
 
         CStr::from_ptr(pubkeys)
     };
-    let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str().unwrap()).unwrap();
+
+    let r_pubkeys_str = c_pubkeys.to_str()?;
+    let r_pubkeys_bytes = hex::decode(r_pubkeys_str)?;
     // ensure that it is the correct public key length
-    assert_eq!(r_pubkeys_bytes.len() % 32, 0);
+    if r_pubkeys_bytes.len() % 32 != 0 {
+        return Err(Error::InvalidPublicBytes);
+    }
     let pubkeys_num = r_pubkeys_bytes.len() / 32;
 
     let c_commits = unsafe {
-        assert!(!commits.is_null());
+        if commits.is_null() {
+            return Err(Error::InvalidCommitBytes);
+        }
 
         CStr::from_ptr(commits)
     };
 
-    let commits_bytes = hex::decode(c_commits.to_str().unwrap()).unwrap();
+    let commits_str = c_commits.to_str()?;
+    let commits_bytes = hex::decode(commits_str)?;
     // ensure that it is the correct commit length
-    assert_eq!(commits_bytes.len() % 16, 0);
+    if commits_bytes.len() % 16 != 0 {
+        return Err(Error::InvalidCommitBytes);
+    }
     let commit_num = commits_bytes.len() / 16;
     // make sure the number of public keys and the number of commits are the same
-    assert_eq!(commit_num, pubkeys_num);
+    if pubkeys_num != commit_num {
+        return Err(Error::IncorrectCommitNum);
+    }
 
     for n in 0..pubkeys_num {
         let mut bytes = [0u8; 16];
         bytes.copy_from_slice(&commits_bytes[n * 16..n * 16 + 16]);
         let commit = Commitment(bytes);
-        let publickey = PublicKey::from_bytes(&r_pubkeys_bytes[n * 32..n * 32 + 32]).unwrap();
+        let publickey = PublicKey::from_bytes(&r_pubkeys_bytes[n * 32..n * 32 + 32])?;
         let _ = musig.add_their_commitment(publickey, commit);
     }
 
     let musig = musig.clone().reveal_stage();
 
-    Box::into_raw(Box::new(musig))
+    Ok(Box::into_raw(Box::new(musig)))
 }
 
 #[no_mangle]
 pub extern "C" fn get_my_reveal(
     musig: *mut MuSig<Transcript, RevealStage<Keypair>>,
 ) -> *mut c_char {
-    let musig = unsafe { &mut *musig };
+    let musig = unsafe {
+        if musig.is_null() {
+            return Error::NullMusig.into();
+        }
+        &mut *musig
+    };
 
     let reveal = musig.our_reveal();
     let reveal_hex = hex::encode(reveal.0);
-    let c_reveal_str = CString::new(reveal_hex).unwrap();
+    let c_reveal_str = match CString::new(reveal_hex) {
+        Ok(bytes) => bytes,
+        Err(_) => return Error::InvalidRevealBytes.into(),
+    };
     c_reveal_str.into_raw()
 }
 
@@ -125,56 +186,86 @@ pub extern "C" fn cosign_stage(
     reveals: *const c_char,
     pubkeys: *const c_char,
 ) -> *mut MuSig<Transcript, CosignStage> {
+    match r_cosign_stage(musig, reveals, pubkeys) {
+        Ok(musig) => musig,
+        Err(_) => null_mut(),
+    }
+}
+
+pub fn r_cosign_stage(
+    musig: *mut MuSig<Transcript, RevealStage<Keypair>>,
+    reveals: *const c_char,
+    pubkeys: *const c_char,
+) -> Result<*mut MuSig<Transcript, CosignStage>, Error> {
     let musig = unsafe {
-        assert!(!musig.is_null());
+        if musig.is_null() {
+            return Err(Error::NullMusig);
+        }
         &mut *musig
     };
     // construct the public key of all people
     let c_pubkeys = unsafe {
-        assert!(!pubkeys.is_null());
+        if pubkeys.is_null() {
+            return Err(Error::InvalidPublicBytes);
+        }
 
         CStr::from_ptr(pubkeys)
     };
 
-    let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str().unwrap()).unwrap();
+    let r_pubkeys_str = c_pubkeys.to_str()?;
+    let r_pubkeys_bytes = hex::decode(r_pubkeys_str)?;
     // ensure that it is the correct public key length
-    assert_eq!(r_pubkeys_bytes.len() % 32, 0);
+    if r_pubkeys_bytes.len() % 32 != 0 {
+        return Err(Error::InvalidPublicBytes);
+    }
     let pubkeys_num = r_pubkeys_bytes.len() / 32;
 
     let c_reveals = unsafe {
-        assert!(!reveals.is_null());
+        if reveals.is_null() {
+            return Err(Error::InvalidRevealBytes);
+        }
 
         CStr::from_ptr(reveals)
     };
 
-    let reveals_bytes = hex::decode(c_reveals.to_str().unwrap()).unwrap();
+    let r_reveals_str = c_reveals.to_str()?;
+    let reveals_bytes = hex::decode(r_reveals_str)?;
     // ensure that it is the correct reveal length
-    assert_eq!(reveals_bytes.len() % 96, 0);
+    if reveals_bytes.len() % 96 != 0 {
+        return Err(Error::InvalidRevealBytes);
+    }
     let reveals_num = reveals_bytes.len() / 96;
     // make sure the number of public keys and the number of commits are the same
-    assert_eq!(reveals_num, pubkeys_num);
+    if pubkeys_num != reveals_num {
+        return Err(Error::IncorrectRevealNum);
+    }
 
     for n in 0..pubkeys_num {
         let mut bytes = [0u8; 96];
         bytes.copy_from_slice(&reveals_bytes[n * 96..n * 96 + 96]);
         let reveal = Reveal(bytes);
-        let publickey = PublicKey::from_bytes(&r_pubkeys_bytes[n * 32..n * 32 + 32]).unwrap();
-        musig.add_their_reveal(publickey, reveal).unwrap();
+        let publickey = PublicKey::from_bytes(&r_pubkeys_bytes[n * 32..n * 32 + 32])?;
+        let _ = musig.add_their_reveal(publickey, reveal);
     }
     // get cosign
     let musig = musig.clone().cosign_stage();
-    Box::into_raw(Box::new(musig))
+    Ok(Box::into_raw(Box::new(musig)))
 }
 
 #[no_mangle]
 pub extern "C" fn get_my_cosign(musig: *mut MuSig<Transcript, CosignStage>) -> *mut c_char {
     let musig = unsafe {
-        assert!(!musig.is_null());
+        if musig.is_null() {
+            return Error::NullMusig.into();
+        }
         &mut *musig
     };
     let cosign = musig.our_cosignature();
     let cosign_hex = hex::encode(cosign.0);
-    let c_cosign_str = CString::new(cosign_hex).unwrap();
+    let c_cosign_str = match CString::new(cosign_hex) {
+        Ok(cosign) => cosign,
+        Err(_) => return Error::InvalidCosignBytes.into(),
+    };
     c_cosign_str.into_raw()
 }
 
@@ -184,88 +275,131 @@ pub extern "C" fn get_signature(
     pubkeys: *const c_char,
     cosign: *const c_char,
 ) -> *mut c_char {
+    match r_get_signature(reveals, pubkeys, cosign) {
+        Ok(sig) => sig,
+        Err(_) => Error::InvalidSignature.into(),
+    }
+}
+
+pub fn r_get_signature(
+    reveals: *const c_char,
+    pubkeys: *const c_char,
+    cosign: *const c_char,
+) -> Result<*mut c_char, Error> {
     let t = signing_context(b"multi-sig").bytes(b"We are legion!");
     let mut c = collect_cosignatures(t.clone());
 
     // construct the public key of all people
     let c_pubkeys = unsafe {
-        assert!(!pubkeys.is_null());
+        if pubkeys.is_null() {
+            return Err(Error::InvalidPublicBytes);
+        }
 
         CStr::from_ptr(pubkeys)
     };
-    let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str().unwrap()).unwrap();
+    let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str()?)?;
     // ensure that it is the correct public key length
-    assert_eq!(r_pubkeys_bytes.len() % 32, 0);
+    if r_pubkeys_bytes.len() % 32 != 0 {
+        return Err(Error::InvalidPublicBytes);
+    }
     let pubkeys_num = r_pubkeys_bytes.len() / 32;
 
-    // construct the cosign of all people
-    let c_cosign = unsafe {
-        assert!(!cosign.is_null());
-
-        CStr::from_ptr(cosign)
-    };
-
-    let r_cosign_bytes = hex::decode(c_cosign.to_str().unwrap()).unwrap();
-    // ensure that it is the correct cosign length
-    assert_eq!(r_cosign_bytes.len() % 32, 0);
-    let cosign_num = r_cosign_bytes.len() / 32;
-
     let c_reveals = unsafe {
-        assert!(!reveals.is_null());
+        if reveals.is_null() {
+            return Err(Error::InvalidRevealBytes);
+        }
 
         CStr::from_ptr(reveals)
     };
 
-    let reveals_bytes = hex::decode(c_reveals.to_str().unwrap()).unwrap();
+    let r_reveals_bytes = hex::decode(c_reveals.to_str()?)?;
     // ensure that it is the correct reveal length
-    assert_eq!(reveals_bytes.len() % 96, 0);
-    let reveals_num = reveals_bytes.len() / 96;
+    if r_reveals_bytes.len() % 96 != 0 {
+        return Err(Error::InvalidRevealBytes);
+    }
+    let reveals_num = r_reveals_bytes.len() / 96;
+
+    // construct the cosign of all people
+    let c_cosign = unsafe {
+        if cosign.is_null() {
+            return Err(Error::InvalidCosignBytes);
+        }
+
+        CStr::from_ptr(cosign)
+    };
+
+    let r_cosign_bytes = hex::decode(c_cosign.to_str()?)?;
+    // ensure that it is the correct cosign length
+    if r_cosign_bytes.len() % 32 != 0 {
+        return Err(Error::InvalidCosignBytes);
+    }
+    let cosign_num = r_cosign_bytes.len() / 32;
+
     // make sure the number of public keys and the number of commits are the same
-    assert!(reveals_num == pubkeys_num && cosign_num == pubkeys_num);
+    if pubkeys_num != reveals_num {
+        return Err(Error::InvalidRevealBytes);
+    }
+    if pubkeys_num != cosign_num {
+        return Err(Error::IncorrectRevealNum);
+    }
 
     for n in 0..pubkeys_num {
         let mut reveal_bytes = [0u8; 96];
-        reveal_bytes.copy_from_slice(&reveals_bytes[n * 96..n * 96 + 96]);
+        reveal_bytes.copy_from_slice(&r_reveals_bytes[n * 96..n * 96 + 96]);
         let reveal = Reveal(reveal_bytes);
         let mut cosign_bytes = [0u8; 32];
         cosign_bytes.copy_from_slice(&r_cosign_bytes[n * 32..n * 32 + 32]);
         let cosign = Cosignature(cosign_bytes);
-        let publickey = PublicKey::from_bytes(&r_pubkeys_bytes[n * 32..n * 32 + 32]).unwrap();
+        let publickey = PublicKey::from_bytes(&r_pubkeys_bytes[n * 32..n * 32 + 32])?;
 
-        c.add(publickey, reveal, cosign).unwrap();
+        let _ = c.add(publickey, reveal, cosign);
     }
     // get cosign
     let sig = c.signature();
     let sig_hex = hex::encode(sig.to_bytes());
-    let c_sig_str = CString::new(sig_hex).unwrap();
-    c_sig_str.into_raw()
+    let c_sig_str = CString::new(sig_hex)?;
+    Ok(c_sig_str.into_raw())
 }
 
 #[no_mangle]
 pub extern "C" fn get_agg_pubkey(pubkeys: *const c_char) -> *mut c_char {
+    match r_get_agg_pubkey(pubkeys) {
+        Ok(pubkey) => pubkey,
+        Err(_) => Error::InvalidPublicBytes.into(),
+    }
+}
+
+pub fn r_get_agg_pubkey(pubkeys: *const c_char) -> Result<*mut c_char, Error> {
     // construct the public key of all people
     let c_pubkeys = unsafe {
-        assert!(!pubkeys.is_null());
+        if pubkeys.is_null() {
+            return Err(Error::InvalidPublicBytes);
+        }
 
         CStr::from_ptr(pubkeys)
     };
 
-    let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str().unwrap()).unwrap();
+    let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str()?)?;
     // ensure that it is the correct public key length
-    assert_eq!(r_pubkeys_bytes.len() % 32, 0);
+    if r_pubkeys_bytes.len() % 32 != 0 {
+        return Err(Error::InvalidPublicBytes);
+    }
     let pubkeys_num = r_pubkeys_bytes.len() / 32;
 
     let mut pubkeys = Vec::<PublicKey>::new();
     for n in 0..pubkeys_num {
-        let publickey = PublicKey::from_bytes(&r_pubkeys_bytes[n * 32..n * 32 + 32]).unwrap();
+        let publickey = PublicKey::from_bytes(&r_pubkeys_bytes[n * 32..n * 32 + 32])?;
         pubkeys.push(publickey);
     }
 
-    let agg = aggregate_public_key_from_slice(&mut pubkeys).unwrap();
-    let agg_pubkey = agg.public_key().to_bytes();
-    let agg_hex = hex::encode(agg_pubkey);
-    let c_agg_str = CString::new(agg_hex).unwrap();
-    c_agg_str.into_raw()
+    if let Some(agg) = aggregate_public_key_from_slice(&mut pubkeys) {
+        let agg_pubkey = agg.public_key().to_bytes();
+        let agg_hex = hex::encode(agg_pubkey);
+        let c_agg_str = CString::new(agg_hex)?;
+        Ok(c_agg_str.into_raw())
+    } else {
+        Err(Error::InvalidPublicBytes)
+    }
 }
 
 #[cfg(test)]

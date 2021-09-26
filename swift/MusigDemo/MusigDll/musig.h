@@ -2,14 +2,13 @@
 //  musig.h
 //  MusigDemo
 //
-//  Created by daiwei on 2021/9/24.
+//  Created by daiwei on 2021/9/26.
 //
 
 #ifndef musig_h
 #define musig_h
 
 #include <stdio.h>
-#include <stdint.h>
 
 #endif /* musig_h */
 

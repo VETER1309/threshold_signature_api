@@ -1,0 +1,11 @@
+{
+  "name": "musig",
+  "version": "1.0.0",
+  "description": "The js version of musig api",
+  "main": "src/musig.js",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ffi-napi": "^4.0.3"
+  }
+}

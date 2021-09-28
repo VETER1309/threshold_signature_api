@@ -1,0 +1,14 @@
+{
+  "name": "musig-demo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/example.js",
+  "scripts": {
+    "example": "node src/example.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "musig": "1.0.0"
+  }
+}

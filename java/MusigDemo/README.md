@@ -27,6 +27,9 @@ Step 3. Import musig
 import com.example.musig.Musig;
 ```
 
+# Example
+
+The specific usage can be viewed in [MainActivity.java](app/src/main/java/com/example/musigdemo/MainActivity.java).This example simulates three people generating aggregated public keys and aggregated signatures.
 
 ## Details
 

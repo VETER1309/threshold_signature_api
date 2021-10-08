@@ -108,7 +108,12 @@ pub fn r_reveal_stage(
     commits: *const c_char,
     pubkeys: *const c_char,
 ) -> Result<*mut MuSig<Transcript, RevealStage<Keypair>>, Error> {
-    let musig = unsafe { &mut *musig };
+    let musig = unsafe {
+        if musig.is_null() {
+            return Err(Error::NullMusig);
+        }
+        &mut *musig
+    };
 
     // construct the public key of all people
     let c_pubkeys = unsafe {

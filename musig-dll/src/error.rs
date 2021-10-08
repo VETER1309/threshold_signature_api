@@ -71,22 +71,22 @@ impl From<Error> for *mut i8 {
                 CString::from_vec_unchecked(b"Invalid Commit Bytes".to_vec()).into_raw()
             },
             Error::IncorrectCommitNum => unsafe {
-                CString::from_vec_unchecked(b"Invalid Commit Bytes".to_vec()).into_raw()
+                CString::from_vec_unchecked(b"Invalid Commit Num".to_vec()).into_raw()
             },
             Error::InvalidRevealBytes => unsafe {
                 CString::from_vec_unchecked(b"Invalid Reveal Bytes".to_vec()).into_raw()
             },
             Error::IncorrectRevealNum => unsafe {
-                CString::from_vec_unchecked(b"Invalid Commit Bytes".to_vec()).into_raw()
+                CString::from_vec_unchecked(b"Invalid Reveal Num".to_vec()).into_raw()
             },
             Error::InvalidCosignBytes => unsafe {
                 CString::from_vec_unchecked(b"Invalid Cosign Bytes".to_vec()).into_raw()
             },
             Error::IncorrectCosignNum => unsafe {
-                CString::from_vec_unchecked(b"Invalid Commit Bytes".to_vec()).into_raw()
+                CString::from_vec_unchecked(b"Invalid Cosign Num".to_vec()).into_raw()
             },
             Error::InvalidSignature => unsafe {
-                CString::from_vec_unchecked(b"Invalid Commit Bytes".to_vec()).into_raw()
+                CString::from_vec_unchecked(b"Invalid Signature".to_vec()).into_raw()
             },
         }
     }

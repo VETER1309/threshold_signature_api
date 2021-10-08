@@ -7,16 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		78E0DE9227101FEF00C5291D /* libmusig_dll.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 78E0DE9127101FEF00C5291D /* libmusig_dll.a */; };
 		78E69F9F270595A200A0E3A5 /* Musig.h in Headers */ = {isa = PBXBuildFile; fileRef = 78E69F9E270595A200A0E3A5 /* Musig.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		78E69FA6270595F800A0E3A5 /* libmusig_dll.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 78E69FA5270595F800A0E3A5 /* libmusig_dll.a */; };
 		78E69FA82705964F00A0E3A5 /* MusigHeader.h in Headers */ = {isa = PBXBuildFile; fileRef = 78E69FA72705964F00A0E3A5 /* MusigHeader.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		78E69FAA2705968600A0E3A5 /* musig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78E69FA92705968600A0E3A5 /* musig.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		78E0DE9127101FEF00C5291D /* libmusig_dll.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmusig_dll.a; path = "../../../../musig-dll/target/libmusig_dll.a"; sourceTree = "<group>"; };
 		78E69F9B270595A200A0E3A5 /* Musig.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Musig.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		78E69F9E270595A200A0E3A5 /* Musig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Musig.h; sourceTree = "<group>"; };
-		78E69FA5270595F800A0E3A5 /* libmusig_dll.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libmusig_dll.a; sourceTree = "<group>"; };
 		78E69FA72705964F00A0E3A5 /* MusigHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MusigHeader.h; sourceTree = "<group>"; };
 		78E69FA92705968600A0E3A5 /* musig.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = musig.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -26,7 +26,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				78E69FA6270595F800A0E3A5 /* libmusig_dll.a in Frameworks */,
+				78E0DE9227101FEF00C5291D /* libmusig_dll.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -52,8 +52,8 @@
 		78E69F9D270595A200A0E3A5 /* Musig */ = {
 			isa = PBXGroup;
 			children = (
+				78E0DE9127101FEF00C5291D /* libmusig_dll.a */,
 				78E69F9E270595A200A0E3A5 /* Musig.h */,
-				78E69FA5270595F800A0E3A5 /* libmusig_dll.a */,
 				78E69FA72705964F00A0E3A5 /* MusigHeader.h */,
 				78E69FA92705968600A0E3A5 /* musig.swift */,
 			);

@@ -12,6 +12,52 @@ This is the js version of musig api. Mainly to facilitate the construction of th
 }
 ~~~
 
+# Api
+Class: Musig(private)
+```
+Pass in the 32-byte private key string to create the Musig class for multi-signature.
+```
+- Musig.getMyPubkey()
+```javascript
+Returns: <string>
+Return a 32-byte public key string.
+Possible error string returned is `Invalid Secret Bytes`.
+```
+- Musig.getMyCommit()
+```javascript
+Returns: <string>
+Returns a 16-byte commit string.
+Possible error strings returned are `Null Musig` or `Invalid Commit Bytes`.
+```
+- Musig.getMyReveal([commits], [pubkeys])
+```javascript
+Pass in the commits and public-keys of other signers.
+Returns: <string>
+Returns a 96-byte reveal string.
+Possible error strings returned are `Null Musig` or `Invalid Reveal Bytes`.
+```
+- Musig.getMyCosign([reveals], [pubkeys])
+```javascript
+Pass in the reveals and public-keys of other signers.
+Returns: <string>
+Returns a 32-byte cosign string.
+Possible error strings returned are `Null Musig` or `Invalid Cosign Bytes`.
+```
+- Musig.getAggSignature([reveals], [pubkeys], [cosigns])
+```javascript
+Pass in the reveals, public-keys and cosigns of other signers.
+Returns: <string>
+Returns a 64-byte signature string.
+Possible error string returned is `Invalid Signature`.
+```
+- Musig.getAggPublicKey([pubkeys])
+```javascript
+Pass in the public-keys to be aggregated.
+Returns: <string>
+Returns a 32-byte aggregate public-key string.
+Possible error strings returned are `Null Musig` or `Invalid Commit Bytes`.
+```
+
 # Example
 
 The specific usage can be viewed in [example.js](src/example.js).This example simulates three people generating aggregated public keys and aggregated signatures.

@@ -2,7 +2,8 @@ package com.example.musigdemo;
 
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
-import com.example.musig.Musig;
+
+import com.chainx.musig.Musig;
 
 public class MainActivity extends AppCompatActivity {
     final static String private1 = "54fa29a5b57041e930b2b0b7939540c076cda3754c4dc2ddb184fe60fe1b7f0c76df013ca315ae0a51a2b9a3eadfaca4fc91a750667d8d8592b0154e381c6da2";

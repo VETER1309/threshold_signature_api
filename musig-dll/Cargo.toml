@@ -9,7 +9,8 @@ crate-type = ["lib", "staticlib"]
 #crate-type = ["cdylib"]
 
 [dependencies]
-schnorrkel = {git = "https://github.com/chainx-org/schnorrkel", branch = "master"}
+schnorrkel = { git = "https://github.com/chainx-org/schnorrkel", branch = "master" }
+mast = { git = "https://github.com/chainx-org/mast", branch = "main" }
 hex = "0.4.3"
 hex-literal = "0.3.1"
 libc = "0.2"

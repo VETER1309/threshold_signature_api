@@ -1,6 +1,8 @@
 use libc::c_char;
+use mast::{Mast, XOnly};
 use merlin::Transcript;
 use std::{
+    convert::TryFrom,
     ffi::{CStr, CString},
     ptr::null_mut,
 };
@@ -405,6 +407,103 @@ pub fn r_get_agg_pubkey(pubkeys: *const c_char) -> Result<*mut c_char, Error> {
     } else {
         Err(Error::InvalidPublicBytes)
     }
+}
+
+pub fn r_get_my_mast(pubkeys: *const c_char) -> Result<Mast, Error> {
+    // construct the public key of all people
+    let c_pubkeys = unsafe {
+        if pubkeys.is_null() {
+            return Err(Error::InvalidPublicBytes);
+        }
+
+        CStr::from_ptr(pubkeys)
+    };
+
+    let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str()?)?;
+    // ensure that it is the correct public key length
+    if r_pubkeys_bytes.len() % 32 != 0 {
+        return Err(Error::InvalidPublicBytes);
+    }
+    let pubkeys_num = r_pubkeys_bytes.len() / 32;
+
+    let mut pubkeys = Vec::<XOnly>::new();
+    for n in 0..pubkeys_num {
+        let publickey = XOnly::try_from(r_pubkeys_bytes[n * 32..n * 32 + 32].to_vec())?;
+        pubkeys.push(publickey);
+    }
+
+    Ok(Mast::new(pubkeys))
+}
+
+#[no_mangle]
+pub extern "C" fn generate_mulsig_pubkey(pubkeys: *const c_char) -> *mut c_char {
+    match r_generate_tweak_pubkey(pubkeys) {
+        Ok(pubkey) => pubkey,
+        Err(_) => Error::InvalidPublicBytes.into(),
+    }
+}
+
+pub fn r_generate_tweak_pubkey(pubkeys: *const c_char) -> Result<*mut c_char, Error> {
+    let inner_pubkey = r_get_agg_pubkey(pubkeys)?;
+    let c_inner = unsafe {
+        if inner_pubkey.is_null() {
+            return Err(Error::InvalidPublicBytes);
+        }
+
+        CStr::from_ptr(inner_pubkey)
+    };
+    let r_inner_bytes = hex::decode(c_inner.to_str()?)?;
+
+    let mast = r_get_my_mast(pubkeys)?;
+    let inner = XOnly::try_from(r_inner_bytes)?;
+    let tweak = mast.generate_tweak_pubkey(&inner)?;
+    let tweak_hex = hex::encode(tweak);
+    let c_tweak_str = CString::new(tweak_hex)?;
+    Ok(c_tweak_str.into_raw())
+}
+
+#[no_mangle]
+pub extern "C" fn generate_control_block(
+    pubkeys: *const c_char,
+    agg_pubkey: *const c_char,
+) -> *mut c_char {
+    match r_generate_control_block(pubkeys, agg_pubkey) {
+        Ok(pubkey) => pubkey,
+        Err(_) => Error::InvalidPublicBytes.into(),
+    }
+}
+
+pub fn r_generate_control_block(
+    pubkeys: *const c_char,
+    agg_pubkey: *const c_char,
+) -> Result<*mut c_char, Error> {
+    let inner_pubkey = r_get_agg_pubkey(pubkeys)?;
+    let c_inner = unsafe {
+        if inner_pubkey.is_null() {
+            return Err(Error::InvalidPublicBytes);
+        }
+
+        CStr::from_ptr(inner_pubkey)
+    };
+    let r_inner_bytes = hex::decode(c_inner.to_str()?)?;
+
+    let c_agg = unsafe {
+        if agg_pubkey.is_null() {
+            return Err(Error::InvalidPublicBytes);
+        }
+
+        CStr::from_ptr(agg_pubkey)
+    };
+
+    let r_agg_bytes = hex::decode(c_agg.to_str()?)?;
+    let agg = XOnly::try_from(r_agg_bytes)?;
+
+    let mast = r_get_my_mast(pubkeys)?;
+    let proof = mast.generate_merkle_proof(&agg)?.concat();
+    let control = [r_inner_bytes, proof].concat();
+    let control_hex = hex::decode(control)?;
+    let c_control_str = CString::new(control_hex)?;
+    Ok(c_control_str.into_raw())
 }
 
 #[cfg(test)]

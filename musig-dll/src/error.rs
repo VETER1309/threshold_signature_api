@@ -4,6 +4,7 @@ use std::{
 };
 
 use hex::FromHexError;
+use mast::error::MastError;
 use schnorrkel::SignatureError;
 
 pub enum Error {
@@ -46,6 +47,14 @@ impl From<SignatureError> for Error {
 
 impl From<NulError> for Error {
     fn from(e: NulError) -> Self {
+        match e {
+            _ => Self::NormalError,
+        }
+    }
+}
+
+impl From<MastError> for Error {
+    fn from(e: MastError) -> Self {
         match e {
             _ => Self::NormalError,
         }

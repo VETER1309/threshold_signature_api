@@ -409,14 +409,14 @@ pub fn r_get_agg_pubkey(pubkeys: *const c_char) -> Result<*mut c_char, Error> {
     }
 }
 
-pub fn r_get_my_mast(pubkeys: *const c_char) -> Result<Mast, Error> {
+pub fn r_get_my_mast(agg_pubkeys: *const c_char) -> Result<Mast, Error> {
     // construct the public key of all people
     let c_pubkeys = unsafe {
-        if pubkeys.is_null() {
+        if agg_pubkeys.is_null() {
             return Err(Error::InvalidPublicBytes);
         }
 
-        CStr::from_ptr(pubkeys)
+        CStr::from_ptr(agg_pubkeys)
     };
 
     let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str()?)?;
@@ -436,15 +436,20 @@ pub fn r_get_my_mast(pubkeys: *const c_char) -> Result<Mast, Error> {
 }
 
 #[no_mangle]
-pub extern "C" fn generate_mulsig_pubkey(pubkeys: *const c_char) -> *mut c_char {
-    match r_generate_tweak_pubkey(pubkeys) {
+pub extern "C" fn generate_mulsig_pubkey(
+    agg_pubkeys: *const c_char,
+    inner_pubkey: *const c_char,
+) -> *mut c_char {
+    match r_generate_tweak_pubkey(agg_pubkeys, inner_pubkey) {
         Ok(pubkey) => pubkey,
         Err(_) => Error::InvalidPublicBytes.into(),
     }
 }
 
-pub fn r_generate_tweak_pubkey(pubkeys: *const c_char) -> Result<*mut c_char, Error> {
-    let inner_pubkey = r_get_agg_pubkey(pubkeys)?;
+pub fn r_generate_tweak_pubkey(
+    agg_pubkeys: *const c_char,
+    inner_pubkey: *const c_char,
+) -> Result<*mut c_char, Error> {
     let c_inner = unsafe {
         if inner_pubkey.is_null() {
             return Err(Error::InvalidPublicBytes);
@@ -452,9 +457,10 @@ pub fn r_generate_tweak_pubkey(pubkeys: *const c_char) -> Result<*mut c_char, Er
 
         CStr::from_ptr(inner_pubkey)
     };
+
     let r_inner_bytes = hex::decode(c_inner.to_str()?)?;
 
-    let mast = r_get_my_mast(pubkeys)?;
+    let mast = r_get_my_mast(agg_pubkeys)?;
     let inner = XOnly::try_from(r_inner_bytes)?;
     let tweak = mast.generate_tweak_pubkey(&inner)?;
     let tweak_hex = hex::encode(tweak);
@@ -465,9 +471,10 @@ pub fn r_generate_tweak_pubkey(pubkeys: *const c_char) -> Result<*mut c_char, Er
 #[no_mangle]
 pub extern "C" fn generate_control_block(
     pubkeys: *const c_char,
+    inner_pubkey: *const c_char,
     agg_pubkey: *const c_char,
 ) -> *mut c_char {
-    match r_generate_control_block(pubkeys, agg_pubkey) {
+    match r_generate_control_block(pubkeys, inner_pubkey, agg_pubkey) {
         Ok(pubkey) => pubkey,
         Err(_) => Error::InvalidPublicBytes.into(),
     }
@@ -475,9 +482,9 @@ pub extern "C" fn generate_control_block(
 
 pub fn r_generate_control_block(
     pubkeys: *const c_char,
+    inner_pubkey: *const c_char,
     agg_pubkey: *const c_char,
 ) -> Result<*mut c_char, Error> {
-    let inner_pubkey = r_get_agg_pubkey(pubkeys)?;
     let c_inner = unsafe {
         if inner_pubkey.is_null() {
             return Err(Error::InvalidPublicBytes);
@@ -485,6 +492,7 @@ pub fn r_generate_control_block(
 
         CStr::from_ptr(inner_pubkey)
     };
+
     let r_inner_bytes = hex::decode(c_inner.to_str()?)?;
 
     let c_agg = unsafe {

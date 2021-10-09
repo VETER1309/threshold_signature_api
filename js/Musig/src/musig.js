@@ -11,6 +11,8 @@ const lib = ffi.Library(lib_path, {
     get_my_cosign: ['string', ['pointer']],
     get_signature: ['string', ['string', 'string', 'string']],
     get_agg_pubkey: ['string', ['string']],
+    generate_threshold_pubkey: ['string', ['string', 'uint8']],
+    generate_control_block: ['string', ['string', 'uint8', 'string']]
 });
 
 const Musig = function (priv) {
@@ -45,8 +47,20 @@ Musig.prototype.getAggPubkey = function (pubkeys) {
     return lib.get_agg_pubkey(pubkeys.join(""))
 }
 
-module.exports = {
-    Musig
+const Mast = function (pubkeys, threshold) {
+    this.pubkeys = pubkeys
+    this.threshold = threshold
 }
 
+Mast.prototype.generateThresholdPubkey = function () {
+    return lib.generate_threshold_pubkey(this.pubkeys.join(""), this.threshold)
+}
 
+Mast.prototype.generateControlBlock = function (aggPubkey) {
+    return lib.generate_control_block(this.pubkeys.join(""), this.threshold, aggPubkey)
+}
+
+module.exports = {
+    Musig,
+    Mast
+}

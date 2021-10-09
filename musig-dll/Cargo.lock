@@ -132,7 +132,7 @@ checksum = "dd8f7255a17a627354f321ef0055d63b898c6fb27eff628af4d1b66b7331edf6"
 [[package]]
 name = "mast"
 version = "0.1.0"
-source = "git+https://github.com/chainx-org/mast?branch=main#7bcbcae047a601411e22cf469ebe5e3c4a603109"
+source = "git+https://github.com/chainx-org/mast?branch=main#c0133dcff2d92a072bf2d1d0db0ec05846cbc8ee"
 dependencies = [
  "arrayref",
  "bitcoin_hashes",

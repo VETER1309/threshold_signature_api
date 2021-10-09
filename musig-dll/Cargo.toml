@@ -5,8 +5,8 @@ edition = "2018"
 version = "0.1.0"
 
 [lib]
-crate-type = ["lib", "staticlib"]
-#crate-type = ["cdylib"]
+# crate-type = ["lib", "staticlib"]
+crate-type = ["cdylib"]
 
 [dependencies]
 schnorrkel = { git = "https://github.com/chainx-org/schnorrkel", branch = "master" }

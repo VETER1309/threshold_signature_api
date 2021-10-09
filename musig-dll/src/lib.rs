@@ -1,8 +1,7 @@
 use libc::c_char;
-use mast::{Mast, XOnly};
+use mast::Mast;
 use merlin::Transcript;
 use std::{
-    convert::TryFrom,
     ffi::{CStr, CString},
     ptr::null_mut,
 };
@@ -409,60 +408,20 @@ pub fn r_get_agg_pubkey(pubkeys: *const c_char) -> Result<*mut c_char, Error> {
     }
 }
 
-pub fn r_get_my_mast(agg_pubkeys: *const c_char) -> Result<Mast, Error> {
-    // construct the public key of all people
-    let c_pubkeys = unsafe {
-        if agg_pubkeys.is_null() {
-            return Err(Error::InvalidPublicBytes);
-        }
-
-        CStr::from_ptr(agg_pubkeys)
-    };
-
-    let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str()?)?;
-    // ensure that it is the correct public key length
-    if r_pubkeys_bytes.len() % 32 != 0 {
-        return Err(Error::InvalidPublicBytes);
-    }
-    let pubkeys_num = r_pubkeys_bytes.len() / 32;
-
-    let mut pubkeys = Vec::<XOnly>::new();
-    for n in 0..pubkeys_num {
-        let publickey = XOnly::try_from(r_pubkeys_bytes[n * 32..n * 32 + 32].to_vec())?;
-        pubkeys.push(publickey);
-    }
-
-    Ok(Mast::new(pubkeys))
-}
-
 #[no_mangle]
-pub extern "C" fn generate_mulsig_pubkey(
-    agg_pubkeys: *const c_char,
-    inner_pubkey: *const c_char,
-) -> *mut c_char {
-    match r_generate_tweak_pubkey(agg_pubkeys, inner_pubkey) {
+pub extern "C" fn generate_threshold_pubkey(pubkeys: *const c_char, threshold: u8) -> *mut c_char {
+    match r_generate_tweak_pubkey(pubkeys, threshold as usize) {
         Ok(pubkey) => pubkey,
         Err(_) => Error::InvalidPublicBytes.into(),
     }
 }
 
 pub fn r_generate_tweak_pubkey(
-    agg_pubkeys: *const c_char,
-    inner_pubkey: *const c_char,
+    pubkeys: *const c_char,
+    threshold: usize,
 ) -> Result<*mut c_char, Error> {
-    let c_inner = unsafe {
-        if inner_pubkey.is_null() {
-            return Err(Error::InvalidPublicBytes);
-        }
-
-        CStr::from_ptr(inner_pubkey)
-    };
-
-    let r_inner_bytes = hex::decode(c_inner.to_str()?)?;
-
-    let mast = r_get_my_mast(agg_pubkeys)?;
-    let inner = XOnly::try_from(r_inner_bytes)?;
-    let tweak = mast.generate_tweak_pubkey(&inner)?;
+    let mast = r_get_my_mast(pubkeys, threshold)?;
+    let tweak = mast.generate_tweak_pubkey()?;
     let tweak_hex = hex::encode(tweak);
     let c_tweak_str = CString::new(tweak_hex)?;
     Ok(c_tweak_str.into_raw())
@@ -471,10 +430,10 @@ pub fn r_generate_tweak_pubkey(
 #[no_mangle]
 pub extern "C" fn generate_control_block(
     pubkeys: *const c_char,
-    inner_pubkey: *const c_char,
+    threshold: u8,
     agg_pubkey: *const c_char,
 ) -> *mut c_char {
-    match r_generate_control_block(pubkeys, inner_pubkey, agg_pubkey) {
+    match r_generate_control_block(pubkeys, threshold as usize, agg_pubkey) {
         Ok(pubkey) => pubkey,
         Err(_) => Error::InvalidPublicBytes.into(),
     }
@@ -482,19 +441,9 @@ pub extern "C" fn generate_control_block(
 
 pub fn r_generate_control_block(
     pubkeys: *const c_char,
-    inner_pubkey: *const c_char,
+    threshold: usize,
     agg_pubkey: *const c_char,
 ) -> Result<*mut c_char, Error> {
-    let c_inner = unsafe {
-        if inner_pubkey.is_null() {
-            return Err(Error::InvalidPublicBytes);
-        }
-
-        CStr::from_ptr(inner_pubkey)
-    };
-
-    let r_inner_bytes = hex::decode(c_inner.to_str()?)?;
-
     let c_agg = unsafe {
         if agg_pubkey.is_null() {
             return Err(Error::InvalidPublicBytes);
@@ -504,20 +453,43 @@ pub fn r_generate_control_block(
     };
 
     let r_agg_bytes = hex::decode(c_agg.to_str()?)?;
-    let agg = XOnly::try_from(r_agg_bytes)?;
+    let agg = PublicKey::from_bytes(&r_agg_bytes)?;
 
-    let mast = r_get_my_mast(pubkeys)?;
-    let proof = mast.generate_merkle_proof(&agg)?.concat();
-    let control = [r_inner_bytes, proof].concat();
-    let control_hex = hex::encode(control);
+    let mast = r_get_my_mast(pubkeys, threshold)?;
+    let control = mast.generate_merkle_proof(&agg)?;
+    let control_hex = hex::encode(&control);
     let c_control_str = CString::new(control_hex)?;
     Ok(c_control_str.into_raw())
 }
 
+pub fn r_get_my_mast(pubkeys: *const c_char, threshold: usize) -> Result<Mast, Error> {
+    // construct the public key of all people
+    let c_pubkeys = unsafe {
+        if pubkeys.is_null() {
+            return Err(Error::InvalidPublicBytes);
+        }
+
+        CStr::from_ptr(pubkeys)
+    };
+
+    let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str()?)?;
+    // ensure that it is the correct public key length
+    if r_pubkeys_bytes.len() % 32 != 0 {
+        return Err(Error::InvalidPublicBytes);
+    }
+    let pubkeys_num = r_pubkeys_bytes.len() / 32;
+
+    let mut pubkeys = Vec::new();
+    for n in 0..pubkeys_num {
+        let publickey = PublicKey::from_bytes(&r_pubkeys_bytes[n * 32..n * 32 + 32])?;
+        pubkeys.push(publickey);
+    }
+
+    Ok(Mast::new(pubkeys, threshold)?)
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::generate_control_block;
-
     use super::*;
     use schnorrkel::Signature;
 
@@ -527,10 +499,10 @@ mod tests {
     const PUBLIC0: &str = "e283f9f07f5bae9a2ea1b4cfea313b3b5e29e0cac2dec126e788f0bf811ff82b";
     const PUBLIC1: &str = "40c01b70fe175c6db4f01d3ef5b4f96b5bc31f33d22b0a9b84f3ab75fc7e6c72";
     const PUBLIC2: &str = "dcb27a4ddd6f52216b294c8392d53b85099bbe9f7235914364334ee8f2ea707e";
+    const PUBLICA: &str = "005431ba274d567440f1da2fc4b8bc37e90d8155bf158966907b3f67a9e13b2d";
+    const PUBLICB: &str = "90b0ae8d9be3dab2f61595eb357846e98c185483aff9fa211212a87ad18ae547";
+    const PUBLICC: &str = "66768a820dd1e686f28167a572f5ea1acb8c3162cb33f0d4b2b6bee287742415";
     const PUBLICAB: &str = "7c9a72882718402bf909b3c1693af60501c7243d79ecc8cf030fa253eb136861";
-    const PUBLICAC: &str = "b69af178463918a181a8549d2cfbe77884852ace9d8b299bddf69bedc33f6356";
-    const PUBLICBC: &str = "a20c839d955cb10e58c6cbc75812684ad3a1a8f24a503e1c07f5e4944d974d3b";
-    const PUBLICABC: &str = "881102cd9cf2ee389137a99a2ad88447b9e8b60c350cda71aff049233574c768";
 
     fn convert_char_to_str(c: *mut c_char) -> String {
         let c_str = unsafe {
@@ -583,28 +555,23 @@ mod tests {
 
     #[test]
     fn generate_mulsig_pubkey_should_work() {
-        let agg_pubkeys = PUBLICAB.to_owned() + PUBLICAC + PUBLICBC;
-        let agg_pubkeys = CString::new(agg_pubkeys.as_str()).unwrap().into_raw();
+        let pubkeys = PUBLICA.to_owned() + PUBLICB + PUBLICC;
+        let pubkeys = CString::new(pubkeys.as_str()).unwrap().into_raw();
 
-        let inner_pubkey = CString::new(PUBLICABC).unwrap().into_raw();
-
-        let multi_pubkey = convert_char_to_str(generate_mulsig_pubkey(agg_pubkeys, inner_pubkey));
+        let multi_pubkey = convert_char_to_str(generate_threshold_pubkey(pubkeys, 2));
         assert_eq!(
-            "001604bef08d1fe4cefb2e75a2b786287821546f6acbe89570acc5d5a9bd5049",
+            "d637ab113200c61d0188b6039de9738baa65d3e4f0d9f463a7aef8038c964021",
             multi_pubkey
         );
     }
 
     #[test]
     fn generate_control_block_should_work() {
-        let agg_pubkeys = PUBLICAB.to_owned() + PUBLICAC + PUBLICBC;
-        let agg_pubkeys = CString::new(agg_pubkeys.as_str()).unwrap().into_raw();
-
-        let inner_pubkey = CString::new(PUBLICABC).unwrap().into_raw();
+        let pubkeys = PUBLICA.to_owned() + PUBLICB + PUBLICC;
+        let pubkeys = CString::new(pubkeys.as_str()).unwrap().into_raw();
 
         let ab_agg = CString::new(PUBLICAB).unwrap().into_raw();
-        let control =
-            convert_char_to_str(generate_control_block(agg_pubkeys, inner_pubkey, ab_agg));
-        assert_eq!("881102cd9cf2ee389137a99a2ad88447b9e8b60c350cda71aff049233574c768e17a23050f6f6db2f4218ce9f7c14edd21c5f24818157103c5a8524d7014c0dd0bac21362eecf9223bc477d6dfbbe02066a911eba752faedb26d881c466ea80f", control);
+        let control = convert_char_to_str(generate_control_block(pubkeys, 2, ab_agg));
+        assert_eq!("881102cd9cf2ee389137a99a2ad88447b9e8b60c350cda71aff049233574c7680bac21362eecf9223bc477d6dfbbe02066a911eba752faedb26d881c466ea80fe17a23050f6f6db2f4218ce9f7c14edd21c5f24818157103c5a8524d7014c0dd", control);
     }
 }

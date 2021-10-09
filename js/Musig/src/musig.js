@@ -39,11 +39,11 @@ Musig.prototype.getMyCosign = function (reveals, pubkeys) {
     return lib.get_my_cosign(this.ptr)
 }
 
-Musig.prototype.getAggSignature = function (reveals, pubkeys, cosigns) {
+getAggSignature = function (reveals, pubkeys, cosigns) {
     return lib.get_signature(reveals.join(""), pubkeys.join(""), cosigns.join(""))
 }
 
-Musig.prototype.getAggPubkey = function (pubkeys) {
+getAggPubkey = function (pubkeys) {
     return lib.get_agg_pubkey(pubkeys.join(""))
 }
 
@@ -62,5 +62,7 @@ Mast.prototype.generateControlBlock = function (aggPubkey) {
 
 module.exports = {
     Musig,
-    Mast
+    Mast,
+    getAggSignature,
+    getAggPubkey,
 }

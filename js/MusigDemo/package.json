@@ -9,6 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "musig": "1.2.0"
+    "musig": "1.3.0"
   }
 }

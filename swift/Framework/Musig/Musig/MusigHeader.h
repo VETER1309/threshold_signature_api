@@ -31,3 +31,7 @@ char *get_my_cosign(Musig *musig);
 char *get_signature(const char *reveals, const char *pubkeys, const char *cosign);
 
 char *get_agg_pubkey(const char *pubkeys);
+
+char *generate_threshold_pubkey(const char *pubkeys, uint8_t threshold);
+
+char *generate_control_block(const char *pubkeys, uint8_t threshold, const char *agg_pubkey);

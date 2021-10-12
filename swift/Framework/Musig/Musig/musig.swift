@@ -16,15 +16,10 @@ public class Musig{
         pubkey = String.init(cString:get_my_pubkey(priv))
         musig = get_musig(priv)
     }
-    public func getMyCommit() -> String{
-        return String.init(cString:get_my_commit(musig))
-    }
     public func getMyPubkey() -> String{
         return pubkey
     }
-    public func getMyReveal(commits:[String], pubkeys:[String]) -> String{
-
-        musig = reveal_stage(musig, commits.joined(separator: ""), pubkeys.joined(separator: ""))
+    public func getMyReveal() -> String{
         return String.init(cString:get_my_reveal(musig))
     }
     public func getMyCosign(reveals:[String], pubkeys:[String]) -> String{

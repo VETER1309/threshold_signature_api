@@ -8,8 +8,8 @@ use std::{
 
 use schnorrkel::{
     musig::{
-        aggregate_public_key_from_slice, collect_cosignatures, AggregatePublicKey, CommitStage,
-        Commitment, CosignStage, Cosignature, MuSig, Reveal, RevealStage,
+        aggregate_public_key_from_slice, collect_cosignatures, AggregatePublicKey,
+        CosignStage, Cosignature, MuSig, Reveal, RevealStage,
     },
     signing_context, Keypair, PublicKey, SecretKey,
 };
@@ -47,7 +47,7 @@ pub fn r_get_my_pubkey(privkey: *const c_char) -> Result<*mut c_char, Error> {
 #[no_mangle]
 pub extern "C" fn get_musig(
     privkey: *const c_char,
-) -> *mut MuSig<Transcript, CommitStage<Keypair>> {
+) -> *mut MuSig<Transcript, RevealStage<Keypair>> {
     match r_get_musig(privkey) {
         Ok(musig) => musig,
         Err(_) => null_mut(),
@@ -56,7 +56,7 @@ pub extern "C" fn get_musig(
 
 pub fn r_get_musig(
     privkey: *const c_char,
-) -> Result<*mut MuSig<Transcript, CommitStage<Keypair>>, Error> {
+) -> Result<*mut MuSig<Transcript, RevealStage<Keypair>>, Error> {
     let c_priv = unsafe {
         if privkey.is_null() {
             return Err(Error::NullMusig);
@@ -70,99 +70,7 @@ pub fn r_get_musig(
     let secret = SecretKey::from_bytes(&secret_bytes[..])?;
     let keypair = Keypair::from(secret);
     let t = signing_context(b"multi-sig").bytes(b"We are legion!");
-    let musig = MuSig::new(keypair, t);
-    Ok(Box::into_raw(Box::new(musig)))
-}
-
-#[no_mangle]
-pub extern "C" fn get_my_commit(
-    musig: *mut MuSig<Transcript, CommitStage<Keypair>>,
-) -> *mut c_char {
-    let musig = unsafe {
-        if musig.is_null() {
-            return Error::NullMusig.into();
-        }
-        &mut *musig
-    };
-    let commit_hex = hex::encode(&musig.our_commitment().0[..]);
-    let c_commit_str = match CString::new(commit_hex) {
-        Ok(bytes) => bytes,
-        Err(_) => return Error::InvalidCommitBytes.into(),
-    };
-    c_commit_str.into_raw()
-}
-
-#[no_mangle]
-pub extern "C" fn reveal_stage(
-    musig: *mut MuSig<Transcript, CommitStage<Keypair>>,
-    commits: *const c_char,
-    pubkeys: *const c_char,
-) -> *mut MuSig<Transcript, RevealStage<Keypair>> {
-    match r_reveal_stage(musig, commits, pubkeys) {
-        Ok(musig) => musig,
-        Err(_) => null_mut(),
-    }
-}
-
-pub fn r_reveal_stage(
-    musig: *mut MuSig<Transcript, CommitStage<Keypair>>,
-    commits: *const c_char,
-    pubkeys: *const c_char,
-) -> Result<*mut MuSig<Transcript, RevealStage<Keypair>>, Error> {
-    let musig = unsafe {
-        if musig.is_null() {
-            return Err(Error::NullMusig);
-        }
-        &mut *musig
-    };
-
-    // construct the public key of all people
-    let c_pubkeys = unsafe {
-        if pubkeys.is_null() {
-            return Err(Error::InvalidPublicBytes);
-        }
-
-        CStr::from_ptr(pubkeys)
-    };
-
-    let r_pubkeys_str = c_pubkeys.to_str()?;
-    let r_pubkeys_bytes = hex::decode(r_pubkeys_str)?;
-    // ensure that it is the correct public key length
-    if r_pubkeys_bytes.len() % 32 != 0 {
-        return Err(Error::InvalidPublicBytes);
-    }
-    let pubkeys_num = r_pubkeys_bytes.len() / 32;
-
-    let c_commits = unsafe {
-        if commits.is_null() {
-            return Err(Error::InvalidCommitBytes);
-        }
-
-        CStr::from_ptr(commits)
-    };
-
-    let commits_str = c_commits.to_str()?;
-    let commits_bytes = hex::decode(commits_str)?;
-    // ensure that it is the correct commit length
-    if commits_bytes.len() % 16 != 0 {
-        return Err(Error::InvalidCommitBytes);
-    }
-    let commit_num = commits_bytes.len() / 16;
-    // make sure the number of public keys and the number of commits are the same
-    if pubkeys_num != commit_num {
-        return Err(Error::IncorrectCommitNum);
-    }
-
-    for n in 0..pubkeys_num {
-        let mut bytes = [0u8; 16];
-        bytes.copy_from_slice(&commits_bytes[n * 16..n * 16 + 16]);
-        let commit = Commitment(bytes);
-        let publickey = PublicKey::from_bytes(&r_pubkeys_bytes[n * 32..n * 32 + 32])?;
-        let _ = musig.add_their_commitment(publickey, commit);
-    }
-
-    let musig = musig.clone().reveal_stage();
-
+    let musig = MuSig::new(keypair, t).reveal_stage();
     Ok(Box::into_raw(Box::new(musig)))
 }
 
@@ -521,16 +429,8 @@ mod tests {
         let musig_0 = get_musig(secret_key_0);
         let musig_1 = get_musig(secret_key_1);
         let musig_2 = get_musig(secret_key_2);
-        let commit_0 = convert_char_to_str(get_my_commit(musig_0));
-        let commit_1 = convert_char_to_str(get_my_commit(musig_1));
-        let commit_2 = convert_char_to_str(get_my_commit(musig_2));
-        let commits = commit_0 + commit_1.as_str() + commit_2.as_str();
-        let commits = CString::new(commits.as_str()).unwrap().into_raw();
         let pubkeys = PUBLIC0.to_owned() + PUBLIC1 + PUBLIC2;
         let pubkeys = CString::new(pubkeys.as_str()).unwrap().into_raw();
-        let musig_0 = reveal_stage(musig_0, commits, pubkeys);
-        let musig_1 = reveal_stage(musig_1, commits, pubkeys);
-        let musig_2 = reveal_stage(musig_2, commits, pubkeys);
         let reveal_0 = convert_char_to_str(get_my_reveal(musig_0));
         let reveal_1 = convert_char_to_str(get_my_reveal(musig_1));
         let reveal_2 = convert_char_to_str(get_my_reveal(musig_2));

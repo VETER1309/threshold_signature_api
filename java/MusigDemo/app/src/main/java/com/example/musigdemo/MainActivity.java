@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.chainx.musig.Musig;
 import com.chainx.musig.Mast;
+import com.sun.jna.Pointer;
 
 public class MainActivity extends AppCompatActivity {
     final static String private1 = "54fa29a5b57041e930b2b0b7939540c076cda3754c4dc2ddb184fe60fe1b7f0c76df013ca315ae0a51a2b9a3eadfaca4fc91a750667d8d8592b0154e381c6da2";
@@ -19,23 +20,26 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Musig musig0 = new Musig(private1);
-        Musig musig1 = new Musig(private2);
-        Musig musig2 = new Musig(private3);
+        Pointer musig0 = Musig.getMusig(private1);
+        String encodeMusig0 = Musig.encodeRevealStage(musig0);
+        musig0 = Musig.decodeRevealStage(encodeMusig0);
 
-        String pubkey0 = musig0.getMyPubkey();
-        String pubkey1 = musig1.getMyPubkey();
-        String pubkey2 = musig2.getMyPubkey();
+        Pointer musig1 = Musig.getMusig(private2);
+        Pointer musig2 = Musig.getMusig(private3);
 
-        String reveal0 = musig0.getMyReveal();
-        String reveal1 = musig1.getMyReveal();
-        String reveal2 = musig2.getMyReveal();
+        String pubkey0 = Musig.getMyPubkey(private1);
+        String pubkey1 = Musig.getMyPubkey(private2);
+        String pubkey2 = Musig.getMyPubkey(private3);
 
-        String cosign0 = musig0.getMyCosign(new String[]{reveal1, reveal2},
+        String reveal0 = Musig.getMyReveal(musig0);
+        String reveal1 = Musig.getMyReveal(musig1);
+        String reveal2 = Musig.getMyReveal(musig2);
+
+        String cosign0 = Musig.getMyCosign(musig0, new String[]{reveal1, reveal2},
                 new String[]{pubkey1, pubkey2});
-        String cosign1 = musig1.getMyCosign(new String[]{reveal0, reveal2},
+        String cosign1 = Musig.getMyCosign(musig1, new String[]{reveal0, reveal2},
                 new String[]{pubkey0, pubkey2});
-        String cosign2 = musig2.getMyCosign(new String[]{reveal0, reveal1},
+        String cosign2 = Musig.getMyCosign(musig2, new String[]{reveal0, reveal1},
                 new String[]{pubkey0, pubkey1});
 
         String signature = Musig.getAggSignature(new String[]{reveal0, reveal1, reveal2},
@@ -47,9 +51,8 @@ public class MainActivity extends AppCompatActivity {
         System.out.println("signature:" + signature);
         System.out.println("pubkey:" + pubkey);
 
-        Mast mast = new Mast(new String[]{publicA, publicB, publicC}, (byte) 2);
-        String thresholdPubkey = mast.generateThresholdPubkey();
-        String control = mast.generateControlBlock(publicAB);
+        String thresholdPubkey = Mast.generateThresholdPubkey(new String[]{publicA, publicB, publicC}, (byte) 2);
+        String control = Mast.generateControlBlock(new String[]{publicA, publicB, publicC}, (byte) 2, publicAB);
 
         System.out.println("thresholdPubkey:" + thresholdPubkey);
         System.out.println("control:" + control);

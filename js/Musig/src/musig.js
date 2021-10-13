@@ -4,34 +4,48 @@ const lib_path = __dirname + "/libmusig_dll"
 const lib = ffi.Library(lib_path, {
     get_my_pubkey: ['string', ['string']],
     get_musig: ['pointer', ['string']],
-    get_my_commit: ['string', ['pointer']],
-    reveal_stage: ['pointer', ['pointer', 'string', 'string']],
     get_my_reveal: ['string', ['pointer']],
+    encode_reveal_stage: ['string', ['pointer']],
+    decode_reveal_stage: ['pointer', ['string']],
     cosign_stage: ['pointer', ['pointer', 'string', 'string']],
     get_my_cosign: ['string', ['pointer']],
+    encode_cosign_stage: ['string', ['pointer']],
+    decode_cosign_stage: ['pointer', ['string']],
     get_signature: ['string', ['string', 'string', 'string']],
     get_agg_pubkey: ['string', ['string']],
     generate_threshold_pubkey: ['string', ['string', 'uint8']],
     generate_control_block: ['string', ['string', 'uint8', 'string']]
 });
 
-const Musig = function (priv) {
-    this.priv = priv
-    this.pubkey = lib.get_my_pubkey(this.priv)
-    this.ptr = lib.get_musig(this.priv)
+getMyMusig = function (priv) {
+    return lib.get_musig(priv)
 }
 
-Musig.prototype.getMyPubkey = function () {
-    return this.pubkey
+getMyPubkey = function (priv) {
+    return lib.get_my_pubkey(priv)
+}
+getMyReveal = function (musig) {
+    return lib.get_my_reveal(musig)
 }
 
-Musig.prototype.getMyReveal = function () {
-    return lib.get_my_reveal(this.ptr)
+getMyCosign = function (musig, reveals, pubkeys) {
+    musig = lib.cosign_stage(musig, reveals.join(""), pubkeys.join(""))
+    return lib.get_my_cosign(musig)
 }
 
-Musig.prototype.getMyCosign = function (reveals, pubkeys) {
-    this.ptr = lib.cosign_stage(this.ptr, reveals.join(""), pubkeys.join(""))
-    return lib.get_my_cosign(this.ptr)
+encodeRevealStage = function (musig) {
+    return lib.encode_reveal_stage(musig)
+}
+
+decodeRevealStage = function (musig) {
+    return lib.decode_reveal_stage(musig)
+}
+
+encodeCosignStage = function (musig) {
+    return lib.encode_cosign_stage(musig)
+}
+decodeCosignStage = function (musig) {
+    return lib.encode_cosign_stage(musig)
 }
 
 getAggSignature = function (reveals, pubkeys, cosigns) {
@@ -42,22 +56,25 @@ getAggPubkey = function (pubkeys) {
     return lib.get_agg_pubkey(pubkeys.join(""))
 }
 
-const Mast = function (pubkeys, threshold) {
-    this.pubkeys = pubkeys
-    this.threshold = threshold
+generateThresholdPubkey = function (pubkeys, threshold) {
+    return lib.generate_threshold_pubkey(pubkeys.join(""), threshold)
 }
 
-Mast.prototype.generateThresholdPubkey = function () {
-    return lib.generate_threshold_pubkey(this.pubkeys.join(""), this.threshold)
-}
-
-Mast.prototype.generateControlBlock = function (aggPubkey) {
-    return lib.generate_control_block(this.pubkeys.join(""), this.threshold, aggPubkey)
+generateControlBlock = function (pubkeys, threshold, aggPubkey) {
+    return lib.generate_control_block(pubkeys.join(""), threshold, aggPubkey)
 }
 
 module.exports = {
-    Musig,
-    Mast,
+    getMyMusig,
+    getMyPubkey,
+    getMyReveal,
+    getMyCosign,
+    encodeRevealStage,
+    decodeRevealStage,
+    encodeCosignStage,
+    decodeCosignStage,
     getAggSignature,
     getAggPubkey,
+    generateThresholdPubkey,
+    generateControlBlock,
 }

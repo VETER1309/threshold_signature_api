@@ -7,8 +7,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.chainx.musig.Musig;
 import com.chainx.musig.Mast;
 
-import java.security.spec.MGF1ParameterSpec;
-
 public class MainActivity extends AppCompatActivity {
     final static String private1 = "54fa29a5b57041e930b2b0b7939540c076cda3754c4dc2ddb184fe60fe1b7f0c76df013ca315ae0a51a2b9a3eadfaca4fc91a750667d8d8592b0154e381c6da2";
     final static String private2 = "db43ffe916f7aacef99a136ec04a504ab1b95a4023e1c2d2b36e98649bfcff0f45ceb6016fb7292732b940c1efe74d4fc20959a05869b79823ce01f06da84d38";
@@ -25,20 +23,13 @@ public class MainActivity extends AppCompatActivity {
         Musig musig1 = new Musig(private2);
         Musig musig2 = new Musig(private3);
 
-        String commit0 = musig0.getMyCommit();
-        String commit1 = musig1.getMyCommit();
-        String commit2 = musig2.getMyCommit();
-        
         String pubkey0 = musig0.getMyPubkey();
         String pubkey1 = musig1.getMyPubkey();
         String pubkey2 = musig2.getMyPubkey();
 
-        String reveal0 = musig0.getMyReveal(new String[]{commit1, commit2},
-                new String[]{pubkey1, pubkey2});
-        String reveal1 = musig1.getMyReveal(new String[]{commit0, commit2},
-                new String[]{pubkey0, pubkey2});
-        String reveal2 = musig2.getMyReveal(new String[]{commit0, commit1},
-                new String[]{pubkey0, pubkey1});
+        String reveal0 = musig0.getMyReveal();
+        String reveal1 = musig1.getMyReveal();
+        String reveal2 = musig2.getMyReveal();
 
         String cosign0 = musig0.getMyCosign(new String[]{reveal1, reveal2},
                 new String[]{pubkey1, pubkey2});
@@ -47,11 +38,11 @@ public class MainActivity extends AppCompatActivity {
         String cosign2 = musig2.getMyCosign(new String[]{reveal0, reveal1},
                 new String[]{pubkey0, pubkey1});
 
-        String signature = musig0.getAggSignature(new String[]{reveal0, reveal1, reveal2},
+        String signature = Musig.getAggSignature(new String[]{reveal0, reveal1, reveal2},
                 new String[]{cosign0, cosign1, cosign2},
                 new String[]{pubkey0, pubkey1, pubkey2});
 
-        String pubkey = musig0.getAggPublicKey(new String[]{pubkey0, pubkey1, pubkey2});
+        String pubkey = Musig.getAggPublicKey(new String[]{pubkey0, pubkey1, pubkey2});
 
         System.out.println("signature:" + signature);
         System.out.println("pubkey:" + pubkey);

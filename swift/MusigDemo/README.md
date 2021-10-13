@@ -16,57 +16,59 @@ import Musig
 ```
 
 # Api
-getMusig(private)
-```
+### Musig
+**getMusig(private)**
+```java
 Pass in the private key string to create the musig pointer for multi-signature.
 ```
-getMyPubkey(private)
 
+**getMyPubkey(private)**
 ```java
+Pass in the private key to get the public key.
 Returns: <String>
 Return a 32-byte public key string.
 Possible error string returned is `Invalid Secret Bytes`.
 ```
-getMyReveal(musig)
 
+**getMyReveal(musig)**
 ```java
 Pass in the musig pointer.
 Returns: <String>
 Returns a 96-byte reveal string.
 Possible error strings returned are `Null Musig` or `Invalid Reveal Bytes`.
 ```
-encodeRevealStage(musig)
 
-~~~
+**encodeRevealStage(musig)**
+```java
 Pass in the musig pointer.
 Returns: <String>
 Possible error strings returned are `Encode Fail`.
-~~~
+```
 
-decodeRevealStage(reveal_stage)
-
-~~~
+**decodeRevealStage(reveal_stage)**
+```java
 Pass in the reveal stage string.
 Returns: musig pointer
 Possible error strings returned are `Null Musig`.
-~~~
+```
 
-getMyCosign(musig, [reveals], [pubkeys])
-
+**getMyCosign(musig, [reveals], [pubkeys])**
 ```java
 Pass in the musig pointer, the reveals and public-keys of other signers.
 Returns: <String>
 Returns a 32-byte cosign string.
 Possible error strings returned are `Null Musig` or `Invalid Cosign Bytes`.
 ```
-- getAggSignature([reveals], [pubkeys], [cosigns])
+
+**getAggSignature([reveals], [pubkeys], [cosigns])**
 ```java
 Pass in the reveals, public-keys and cosigns of other signers.
 Returns: <String>
 Returns a 64-byte signature string.
 Possible error string returned is `Invalid Signature`.
 ```
-- getAggPublicKey([pubkeys])
+
+**getAggPublicKey([pubkeys])**
 ```java
 Pass in the public-keys to be aggregated.
 Returns: <String>
@@ -74,20 +76,22 @@ Returns a 32-byte aggregate public-key string.
 Possible error strings returned are `Null Musig` or `Invalid Commit Bytes`.
 ```
 
-### Class: Mast(pubkeys, threshold)
+### Mast
 
-```
-Pass in the public keys of all signers and the thresholds of their signatures to construct the mast.
-```
-- Mast.generateThresholdPubkey()
+**generateThresholdPubkey(pubkeys, threshold)**
 ```java
+Generate threshold signature addresses by passing in 
+all signer public keys and signature thresholds.
 Returns: <String>
 Return the public key of the threshold-signature address.
 Possible error string returned is `Invalid Public Bytes`.
 ```
-- Mast.generateControlBlock(aggPubkey)
+**generateControlBlock(pubkeys, threshold, aggPubkey)**
 ```java
-Need to pass in the aggregated signatures of the signers.
+Generate a proof of the aggregated public key by 
+passing in the public key and signature threshold of 
+all signers and the aggregated public key of everyone 
+who performed the signature this time.
 Returns: <String>
 Return signed proofs for transaction validation.
 Possible error string returned is `Invalid Public Bytes`.

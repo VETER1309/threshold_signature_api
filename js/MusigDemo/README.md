@@ -13,64 +13,82 @@ This is the js version of musig api. Mainly to facilitate the construction of th
 ~~~
 
 # Api
-Class: Musig(private)
-```
-Pass in the 32-byte private key string to create the Musig class for multi-signature.
-```
-- Musig.getMyPubkey()
+### Musig
+**getMusig(private)**
 ```javascript
-Returns: <string>
+Pass in the private key string to create the musig pointer for multi-signature.
+```
+
+**getMyPubkey(private)**
+```javascript
+Pass in the private key to get the public key.
+Returns: <String>
 Return a 32-byte public key string.
 Possible error string returned is `Invalid Secret Bytes`.
 ```
-- Musig.getMyCommit()
+
+**getMyReveal(musig)**
 ```javascript
-Returns: <string>
-Returns a 16-byte commit string.
-Possible error strings returned are `Null Musig` or `Invalid Commit Bytes`.
-```
-- Musig.getMyReveal([commits], [pubkeys])
-```javascript
-Pass in the commits and public-keys of other signers.
-Returns: <string>
+Pass in the musig pointer.
+Returns: <String>
 Returns a 96-byte reveal string.
 Possible error strings returned are `Null Musig` or `Invalid Reveal Bytes`.
 ```
-- Musig.getMyCosign([reveals], [pubkeys])
+
+**encodeRevealStage(musig)**
 ```javascript
-Pass in the reveals and public-keys of other signers.
-Returns: <string>
+Pass in the musig pointer.
+Returns: <String>
+Possible error strings returned are `Encode Fail`.
+```
+
+**decodeRevealStage(reveal_stage)**
+```javascript
+Pass in the reveal stage string.
+Returns: musig pointer
+Possible error strings returned are `Null Musig`.
+```
+
+**getMyCosign(musig, [reveals], [pubkeys])**
+```javascript
+Pass in the musig pointer, the reveals and public-keys of other signers.
+Returns: <String>
 Returns a 32-byte cosign string.
 Possible error strings returned are `Null Musig` or `Invalid Cosign Bytes`.
 ```
-- getAggSignature([reveals], [pubkeys], [cosigns])
+
+**getAggSignature([reveals], [pubkeys], [cosigns])**
 ```javascript
 Pass in the reveals, public-keys and cosigns of other signers.
-Returns: <string>
+Returns: <String>
 Returns a 64-byte signature string.
 Possible error string returned is `Invalid Signature`.
 ```
-- getAggPublicKey([pubkeys])
+
+**getAggPublicKey([pubkeys])**
 ```javascript
 Pass in the public-keys to be aggregated.
-Returns: <string>
+Returns: <String>
 Returns a 32-byte aggregate public-key string.
 Possible error strings returned are `Null Musig` or `Invalid Commit Bytes`.
 ```
-### Class: Mast(pubkeys, threshold)
 
-```
-Pass in the public keys of all signers and the thresholds of their signatures to construct the mast.
-```
-- Mast.generateThresholdPubkey()
-```java
+### Mast
+
+**generateThresholdPubkey(pubkeys, threshold)**
+```javascript
+Generate threshold signature addresses by passing in 
+all signer public keys and signature thresholds.
 Returns: <String>
 Return the public key of the threshold-signature address.
 Possible error string returned is `Invalid Public Bytes`.
 ```
-- Mast.generateControlBlock(aggPubkey)
-```java
-Need to pass in the aggregated signatures of the signers.
+**generateControlBlock(pubkeys, threshold, aggPubkey)**
+```javascript
+Generate a proof of the aggregated public key by 
+passing in the public key and signature threshold of 
+all signers and the aggregated public key of everyone 
+who performed the signature this time.
 Returns: <String>
 Return signed proofs for transaction validation.
 Possible error string returned is `Invalid Public Bytes`.
@@ -80,7 +98,7 @@ Possible error string returned is `Invalid Public Bytes`.
 
 The specific usage can be viewed in [example.js](src/example.js).This example simulates three people generating aggregated public keys and aggregated signatures.
 
-## run
+## Run
 
 ~~~
 cd MusigDemo
@@ -90,64 +108,66 @@ yarn example
 
 ![](https://cdn.jsdelivr.net/gh/AAweidai/PictureBed@master/taproot/16328204386451632820438563.png)
 
-## detail
+## Detail
 
-- First pass in the private key to declare a Musig instance
+### Musig
 
-~~~js
-const musig0 = new Musig(private0)
+- First pass in the private key to declare a musig pointer and get my pubkey
+
+~~~javascript
+const musig0 = getMusig(private0)
+const pubkey0 = getMyPubkey(private0)
 ~~~
 
-- Use Musig instance to get my own public key and commit.
+- Use musig pointer to  reveal.
 
-~~~js
-const pubkey0 = musig0.getMyPubkey()
-const commit0 = musig0.getMyCommit()
+~~~javascript
+const reveal0 = getMyReveal(musig0)
 ~~~
 
-- Pass the self-generated pubkey and commit to the other two parties, and the other two parties do the same. In the end, I got the public key and commit of the other two parties. Pass in the `getMyReveal` function to generate my own reveal. **Note that when passing parameters here, pubkey and commit must correspond one to one**.
+- Reveal stage object serialization
 
-~~~js
-const reveal0 = musig0.getMyReveal([commit1, commit2], [pubkey1, pubkey2])
+~~~javascript
+const musig0_reveal_stage = encodeRevealStage(musig0);
 ~~~
 
-- Like commit, pass the reveal and pubkey generated by myself to the other two parties, and I can finally generate the cosign by `getMyCosign`. The pubkey is repeatedly passed here to identify reveal. **Note that when passing parameters here, pubkey and reveal must correspond one to one**.
+- Reveal stage object deserialization
 
-~~~js
-const cosign0 = musig0.getMyCosign([reveal1, reveal2], [pubkey1, pubkey2])
+~~~javascript
+const musig0 = decodeRevealStage(musig0_reveal_stage)
+~~~
+
+- Pass the self-generated pubkey and reveal to the other two parties, and the other two parties do the same. In the end, I got the public key and reveal of the other two parties. Pass in the `getMyCosign` function to generate my own cosign. **Note that when passing parameters here, pubkey and reveal must correspond one to one**.
+
+~~~javascript
+const cosign0 = getMyCosign(musig0, [reveal1, reveal2], [pubkey1, pubkey2])
 ~~~
 
 - Like commit, pass the cosign and pubkey generated by myself to the other two parties, and I can finally generate the signature by `getAggSignature`. **Note that when passing parameters here, reveal, pubkey and reveal must correspond one to one**.
 
-~~~js
-const signature = getAggSignature([reveal0, reveal1, reveal2], [pubkey0, pubkey1, pubkey2], [cosign0, cosign1, cosign2])
+~~~javascript
+const signature = getAggSignature([reveal0, reveal1, reveal2], [cosign0, cosign1, cosign2], [pubkey0, pubkey1, pubkey2])
 ~~~
 
 - When I obtain the public keys of the other two parties, I can generate the aggregate public key. **Note that the public key here must be in order, and the incoming order of the `getAggSignature` must be consistent.**
 
-~~~js
-const pubkey = getAggPubkey([pubkey0, pubkey1, pubkey2])
-~~~
-
-
-## Mast
-
-- First pass in the pubkeys and threshold to declare a Mast instance
-
 ~~~javascript
-const mast = new Mast([publicA, publicB, publicC], 2)
+const pubkey = getAggPublicKey([pubkey0, pubkey1, pubkey2])
 ~~~
+
+### Mast
 
 - The threshold signature address can be generated by using the threshold and the public key of the all participant.
 
 ~~~javascript
-const threshold_pubkey = mast.generateThresholdPubkey()
+const threshold_pubkey = generateThresholdPubkey([pubkeya, pubkeyb, pubkeyc], 2);
 ~~~
 
 - Using the threshold, the public keys of all participants and the aggregation of the public keys can generate a proof.
 
 ~~~javascript
-const control = mast.generateControlBlock(publicAB)
+const control_block = generateControlBlock( [pubkeya, pubkeyb, pubkeyc], 2, pubkeyab)
 ~~~
+
 
 

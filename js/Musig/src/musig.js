@@ -25,12 +25,7 @@ Musig.prototype.getMyPubkey = function () {
     return this.pubkey
 }
 
-Musig.prototype.getMyCommit = function () {
-    return lib.get_my_commit(this.ptr)
-}
-
-Musig.prototype.getMyReveal = function (commits, pubkeys) {
-    this.ptr = lib.reveal_stage(this.ptr, commits.join(""), pubkeys.join(""))
+Musig.prototype.getMyReveal = function () {
     return lib.get_my_reveal(this.ptr)
 }
 

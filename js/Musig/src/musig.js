@@ -9,8 +9,6 @@ const lib = ffi.Library(lib_path, {
     decode_reveal_stage: ['pointer', ['string']],
     cosign_stage: ['pointer', ['pointer', 'string', 'string']],
     get_my_cosign: ['string', ['pointer']],
-    encode_cosign_stage: ['string', ['pointer']],
-    decode_cosign_stage: ['pointer', ['string']],
     get_signature: ['string', ['string', 'string', 'string']],
     get_agg_pubkey: ['string', ['string']],
     generate_threshold_pubkey: ['string', ['string', 'uint8']],
@@ -41,13 +39,6 @@ decodeRevealStage = function (musig) {
     return lib.decode_reveal_stage(musig)
 }
 
-encodeCosignStage = function (musig) {
-    return lib.encode_cosign_stage(musig)
-}
-decodeCosignStage = function (musig) {
-    return lib.encode_cosign_stage(musig)
-}
-
 getAggSignature = function (reveals, pubkeys, cosigns) {
     return lib.get_signature(reveals.join(""), pubkeys.join(""), cosigns.join(""))
 }
@@ -71,8 +62,6 @@ module.exports = {
     getMyCosign,
     encodeRevealStage,
     decodeRevealStage,
-    encodeCosignStage,
-    decodeCosignStage,
     getAggSignature,
     getAggPubkey,
     generateThresholdPubkey,

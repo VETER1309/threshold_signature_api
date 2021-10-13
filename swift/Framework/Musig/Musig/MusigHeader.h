@@ -18,6 +18,10 @@ typedef struct Musig Musig;
 
 Musig *get_musig(const char *privkey);
 
+char *encode_reveal_stage(Musig *musig);
+
+Musig *decode_reveal_stage(const char *reveal_stage);
+
 char *get_my_reveal(Musig *musig);
 
 Musig *cosign_stage(Musig *musig, const char *reveals,const char *pubkeys);

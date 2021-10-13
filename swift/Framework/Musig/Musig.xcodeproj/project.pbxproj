@@ -7,55 +7,55 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		78887D672715BAA700A38B77 /* Musig.h in Headers */ = {isa = PBXBuildFile; fileRef = 78887D662715BAA700A38B77 /* Musig.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		78887D6E2715BAC300A38B77 /* MusigHeader.h in Headers */ = {isa = PBXBuildFile; fileRef = 78887D6D2715BAC300A38B77 /* MusigHeader.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		78887D702715BAD100A38B77 /* libmusig_dll.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 78887D6F2715BAD100A38B77 /* libmusig_dll.a */; };
-		78887D722715BAD800A38B77 /* musig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78887D712715BAD800A38B77 /* musig.swift */; };
+		780EED872716C95100A5A10E /* Musig.h in Headers */ = {isa = PBXBuildFile; fileRef = 780EED862716C95100A5A10E /* Musig.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		780EED8E2716C99D00A5A10E /* libmusig_dll.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 780EED8D2716C99D00A5A10E /* libmusig_dll.a */; };
+		780EED902716C9BC00A5A10E /* musig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 780EED8F2716C9BB00A5A10E /* musig.swift */; };
+		780EED922716C9C200A5A10E /* MusigHeader.h in Headers */ = {isa = PBXBuildFile; fileRef = 780EED912716C9C200A5A10E /* MusigHeader.h */; settings = {ATTRIBUTES = (Public, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		78887D632715BAA700A38B77 /* Musig.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Musig.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		78887D662715BAA700A38B77 /* Musig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Musig.h; sourceTree = "<group>"; };
-		78887D6D2715BAC300A38B77 /* MusigHeader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MusigHeader.h; sourceTree = "<group>"; };
-		78887D6F2715BAD100A38B77 /* libmusig_dll.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libmusig_dll.a; sourceTree = "<group>"; };
-		78887D712715BAD800A38B77 /* musig.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = musig.swift; sourceTree = "<group>"; };
+		780EED832716C95100A5A10E /* Musig.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Musig.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		780EED862716C95100A5A10E /* Musig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Musig.h; sourceTree = "<group>"; };
+		780EED8D2716C99D00A5A10E /* libmusig_dll.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libmusig_dll.a; sourceTree = "<group>"; };
+		780EED8F2716C9BB00A5A10E /* musig.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = musig.swift; sourceTree = "<group>"; };
+		780EED912716C9C200A5A10E /* MusigHeader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MusigHeader.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		78887D602715BAA700A38B77 /* Frameworks */ = {
+		780EED802716C95100A5A10E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				78887D702715BAD100A38B77 /* libmusig_dll.a in Frameworks */,
+				780EED8E2716C99D00A5A10E /* libmusig_dll.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		78887D592715BAA700A38B77 = {
+		780EED792716C95100A5A10E = {
 			isa = PBXGroup;
 			children = (
-				78887D652715BAA700A38B77 /* Musig */,
-				78887D642715BAA700A38B77 /* Products */,
+				780EED852716C95100A5A10E /* Musig */,
+				780EED842716C95100A5A10E /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		78887D642715BAA700A38B77 /* Products */ = {
+		780EED842716C95100A5A10E /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				78887D632715BAA700A38B77 /* Musig.framework */,
+				780EED832716C95100A5A10E /* Musig.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		78887D652715BAA700A38B77 /* Musig */ = {
+		780EED852716C95100A5A10E /* Musig */ = {
 			isa = PBXGroup;
 			children = (
-				78887D662715BAA700A38B77 /* Musig.h */,
-				78887D6D2715BAC300A38B77 /* MusigHeader.h */,
-				78887D6F2715BAD100A38B77 /* libmusig_dll.a */,
-				78887D712715BAD800A38B77 /* musig.swift */,
+				780EED862716C95100A5A10E /* Musig.h */,
+				780EED8D2716C99D00A5A10E /* libmusig_dll.a */,
+				780EED8F2716C9BB00A5A10E /* musig.swift */,
+				780EED912716C9C200A5A10E /* MusigHeader.h */,
 			);
 			path = Musig;
 			sourceTree = "<group>";
@@ -63,26 +63,26 @@
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
-		78887D5E2715BAA700A38B77 /* Headers */ = {
+		780EED7E2716C95100A5A10E /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				78887D672715BAA700A38B77 /* Musig.h in Headers */,
-				78887D6E2715BAC300A38B77 /* MusigHeader.h in Headers */,
+				780EED872716C95100A5A10E /* Musig.h in Headers */,
+				780EED922716C9C200A5A10E /* MusigHeader.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
-		78887D622715BAA700A38B77 /* Musig */ = {
+		780EED822716C95100A5A10E /* Musig */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 78887D6A2715BAA700A38B77 /* Build configuration list for PBXNativeTarget "Musig" */;
+			buildConfigurationList = 780EED8A2716C95100A5A10E /* Build configuration list for PBXNativeTarget "Musig" */;
 			buildPhases = (
-				78887D5E2715BAA700A38B77 /* Headers */,
-				78887D5F2715BAA700A38B77 /* Sources */,
-				78887D602715BAA700A38B77 /* Frameworks */,
-				78887D612715BAA700A38B77 /* Resources */,
+				780EED7E2716C95100A5A10E /* Headers */,
+				780EED7F2716C95100A5A10E /* Sources */,
+				780EED802716C95100A5A10E /* Frameworks */,
+				780EED812716C95100A5A10E /* Resources */,
 			);
 			buildRules = (
 			);
@@ -90,25 +90,25 @@
 			);
 			name = Musig;
 			productName = Musig;
-			productReference = 78887D632715BAA700A38B77 /* Musig.framework */;
+			productReference = 780EED832716C95100A5A10E /* Musig.framework */;
 			productType = "com.apple.product-type.framework";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		78887D5A2715BAA700A38B77 /* Project object */ = {
+		780EED7A2716C95100A5A10E /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 1300;
 				TargetAttributes = {
-					78887D622715BAA700A38B77 = {
+					780EED822716C95100A5A10E = {
 						CreatedOnToolsVersion = 13.0;
 						LastSwiftMigration = 1300;
 					};
 				};
 			};
-			buildConfigurationList = 78887D5D2715BAA700A38B77 /* Build configuration list for PBXProject "Musig" */;
+			buildConfigurationList = 780EED7D2716C95100A5A10E /* Build configuration list for PBXProject "Musig" */;
 			compatibilityVersion = "Xcode 13.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -116,18 +116,18 @@
 				en,
 				Base,
 			);
-			mainGroup = 78887D592715BAA700A38B77;
-			productRefGroup = 78887D642715BAA700A38B77 /* Products */;
+			mainGroup = 780EED792716C95100A5A10E;
+			productRefGroup = 780EED842716C95100A5A10E /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				78887D622715BAA700A38B77 /* Musig */,
+				780EED822716C95100A5A10E /* Musig */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		78887D612715BAA700A38B77 /* Resources */ = {
+		780EED812716C95100A5A10E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -137,18 +137,18 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		78887D5F2715BAA700A38B77 /* Sources */ = {
+		780EED7F2716C95100A5A10E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				78887D722715BAD800A38B77 /* musig.swift in Sources */,
+				780EED902716C9BC00A5A10E /* musig.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		78887D682715BAA700A38B77 /* Debug */ = {
+		780EED882716C95100A5A10E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -212,7 +212,7 @@
 			};
 			name = Debug;
 		};
-		78887D692715BAA700A38B77 /* Release */ = {
+		780EED892716C95100A5A10E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -270,7 +270,7 @@
 			};
 			name = Release;
 		};
-		78887D6B2715BAA700A38B77 /* Debug */ = {
+		780EED8B2716C95100A5A10E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
@@ -281,7 +281,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				EXCLUDED_ARCHS = "armv7 i386";
+				EXCLUDED_ARCHS = "armv7 i386 arm64";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -308,7 +308,7 @@
 			};
 			name = Debug;
 		};
-		78887D6C2715BAA700A38B77 /* Release */ = {
+		780EED8C2716C95100A5A10E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
@@ -319,7 +319,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				EXCLUDED_ARCHS = "armv7 i386";
+				EXCLUDED_ARCHS = "armv7 i386 arm64";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -348,25 +348,25 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		78887D5D2715BAA700A38B77 /* Build configuration list for PBXProject "Musig" */ = {
+		780EED7D2716C95100A5A10E /* Build configuration list for PBXProject "Musig" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				78887D682715BAA700A38B77 /* Debug */,
-				78887D692715BAA700A38B77 /* Release */,
+				780EED882716C95100A5A10E /* Debug */,
+				780EED892716C95100A5A10E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		78887D6A2715BAA700A38B77 /* Build configuration list for PBXNativeTarget "Musig" */ = {
+		780EED8A2716C95100A5A10E /* Build configuration list for PBXNativeTarget "Musig" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				78887D6B2715BAA700A38B77 /* Debug */,
-				78887D6C2715BAA700A38B77 /* Release */,
+				780EED8B2716C95100A5A10E /* Debug */,
+				780EED8C2716C95100A5A10E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 78887D5A2715BAA700A38B77 /* Project object */;
+	rootObject = 780EED7A2716C95100A5A10E /* Project object */;
 }

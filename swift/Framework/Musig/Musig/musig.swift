@@ -7,25 +7,29 @@
 
 import Foundation
 
-public class Musig{
-    let privkey: String
-    let pubkey: String
-    var musig: OpaquePointer?
-    public init(priv: String){
-        privkey = priv
-        pubkey = String.init(cString:get_my_pubkey(priv))
-        musig = get_musig(priv)
-    }
-    public func getMyPubkey() -> String{
-        return pubkey
-    }
-    public func getMyReveal() -> String{
-        return String.init(cString:get_my_reveal(musig))
-    }
-    public func getMyCosign(reveals:[String], pubkeys:[String]) -> String{
-        musig = cosign_stage(musig, reveals.joined(separator: ""), pubkeys.joined(separator: ""))
-        return String.init(cString:get_my_cosign(musig))
-    }
+public func getMusig(priv: String) -> OpaquePointer?{
+    return get_musig(priv)
+}
+
+public func getMyPubkey(priv: String) -> String{
+    return String.init(cString:get_my_pubkey(priv))
+}
+
+public func getMyReveal(musig:OpaquePointer?) -> String{
+    return String.init(cString:get_my_reveal(musig))
+}
+
+public func encodeRevealStage(musig:OpaquePointer?) -> String{
+    return String.init(cString:encode_reveal_stage(musig))
+}
+
+public func decodeRevealStage(reveal_stage:String) -> OpaquePointer?{
+    return decode_reveal_stage(reveal_stage)
+}
+
+public func getMyCosign(musig:OpaquePointer?, reveals:[String], pubkeys:[String]) -> String{
+    let musig = cosign_stage(musig, reveals.joined(separator: ""), pubkeys.joined(separator: ""))
+    return String.init(cString:get_my_cosign(musig))
 }
 
 public func getAggSignature(reveals:[String], cosigns:[String], pubkeys:[String]) -> String{

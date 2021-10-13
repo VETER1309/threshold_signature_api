@@ -9,9 +9,11 @@ version = "0.1.0"
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-schnorrkel = { git = "https://github.com/chainx-org/schnorrkel", branch = "master" }
-mast = { git = "https://github.com/chainx-org/mast", branch = "main" }
 hex = "0.4.3"
 hex-literal = "0.3.1"
 libc = "0.2"
-merlin = "3.0"
+mast = { git = "https://github.com/chainx-org/mast", branch = "main" }
+merlin = { git="https://github.com/AAweidai/merlin.git", branch="main" }
+schnorrkel = { git = "https://github.com/chainx-org/schnorrkel" , branch="master" }
+serde = { version = "1.0.123", default-features = false, optional = true }
+

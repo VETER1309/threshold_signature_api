@@ -10,6 +10,7 @@ use schnorrkel::SignatureError;
 pub enum Error {
     NormalError,
     NullMusig,
+    EncodeFail,
     InvalidSecretBytes,
     InvalidPublicBytes,
     InvalidCommitBytes,
@@ -96,6 +97,9 @@ impl From<Error> for *mut i8 {
             },
             Error::InvalidSignature => unsafe {
                 CString::from_vec_unchecked(b"Invalid Signature".to_vec()).into_raw()
+            },
+            Error::EncodeFail => unsafe {
+                CString::from_vec_unchecked(b"Encode Fail".to_vec()).into_raw()
             },
         }
     }

@@ -8,8 +8,8 @@ use std::{
 
 use schnorrkel::{
     musig::{
-        aggregate_public_key_from_slice, collect_cosignatures, AggregatePublicKey,
-        CosignStage, Cosignature, MuSig, Reveal, RevealStage,
+        aggregate_public_key_from_slice, collect_cosignatures, AggregatePublicKey, CosignStage,
+        Cosignature, MuSig, Reveal, RevealStage,
     },
     signing_context, Keypair, PublicKey, SecretKey,
 };
@@ -72,6 +72,58 @@ pub fn r_get_musig(
     let t = signing_context(b"multi-sig").bytes(b"We are legion!");
     let musig = MuSig::new(keypair, t).reveal_stage();
     Ok(Box::into_raw(Box::new(musig)))
+}
+
+#[no_mangle]
+pub extern "C" fn encode_reveal_stage(
+    musig: *mut MuSig<Transcript, RevealStage<Keypair>>,
+) -> *mut c_char {
+    match r_encode_reveal_stage(musig) {
+        Ok(s) => s,
+        Err(e) => e.into(),
+    }
+}
+
+pub fn r_encode_reveal_stage(
+    musig: *mut MuSig<Transcript, RevealStage<Keypair>>,
+) -> Result<*mut c_char, Error> {
+    let musig = unsafe {
+        if musig.is_null() {
+            return Err(Error::NullMusig);
+        }
+        &mut *musig
+    };
+    match serde_json::to_string(musig) {
+        Ok(s) => Ok(CString::new(s).map_err(|_| Error::EncodeFail)?.into_raw()),
+        Err(_) => Err(Error::EncodeFail),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn decode_reveal_stage(
+    reveal_stage: *const c_char,
+) -> *mut MuSig<Transcript, RevealStage<Keypair>> {
+    match r_decode_reveal_stage(reveal_stage) {
+        Ok(s) => s,
+        Err(_) => null_mut(),
+    }
+}
+
+pub fn r_decode_reveal_stage(
+    reveal_stage: *const c_char,
+) -> Result<*mut MuSig<Transcript, RevealStage<Keypair>>, Error> {
+    let reveal_stage = unsafe {
+        if reveal_stage.is_null() {
+            return Err(Error::NullMusig);
+        }
+
+        CStr::from_ptr(reveal_stage)
+    };
+    let reveal_stage = reveal_stage.to_str()?;
+    match serde_json::from_str(reveal_stage) {
+        Ok(s) => Ok(Box::into_raw(Box::new(s))),
+        Err(_) => Err(Error::NullMusig),
+    }
 }
 
 #[no_mangle]
@@ -164,6 +216,56 @@ pub fn r_cosign_stage(
     // get cosign
     let musig = musig.clone().cosign_stage();
     Ok(Box::into_raw(Box::new(musig)))
+}
+
+#[no_mangle]
+pub extern "C" fn encode_cosign_stage(musig: *mut MuSig<Transcript, CosignStage>) -> *mut c_char {
+    match r_encode_cosign_stage(musig) {
+        Ok(s) => s,
+        Err(e) => e.into(),
+    }
+}
+
+pub fn r_encode_cosign_stage(
+    musig: *mut MuSig<Transcript, CosignStage>,
+) -> Result<*mut c_char, Error> {
+    let musig = unsafe {
+        if musig.is_null() {
+            return Err(Error::NullMusig);
+        }
+        &mut *musig
+    };
+    match serde_json::to_string(musig) {
+        Ok(s) => Ok(CString::new(s).map_err(|_| Error::EncodeFail)?.into_raw()),
+        Err(_) => Err(Error::EncodeFail),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn decode_cosign_stage(
+    reveal_stage: *const c_char,
+) -> *mut MuSig<Transcript, CosignStage> {
+    match r_decode_cosign_stage(reveal_stage) {
+        Ok(s) => s,
+        Err(_) => null_mut(),
+    }
+}
+
+pub fn r_decode_cosign_stage(
+    reveal_stage: *const c_char,
+) -> Result<*mut MuSig<Transcript, CosignStage>, Error> {
+    let reveal_stage = unsafe {
+        if reveal_stage.is_null() {
+            return Err(Error::NullMusig);
+        }
+
+        CStr::from_ptr(reveal_stage)
+    };
+    let reveal_stage = reveal_stage.to_str()?;
+    match serde_json::from_str(reveal_stage) {
+        Ok(s) => Ok(Box::into_raw(Box::new(s))),
+        Err(_) => Err(Error::NullMusig),
+    }
 }
 
 #[no_mangle]
@@ -427,6 +529,10 @@ mod tests {
         let secret_key_1 = CString::new(PRIVATE1).unwrap().into_raw();
         let secret_key_2 = CString::new(PRIVATE2).unwrap().into_raw();
         let musig_0 = get_musig(secret_key_0);
+        // Reveal stage object serialization
+        let musig_0 = encode_reveal_stage(musig_0);
+        // Reveal stage object deserialization
+        let musig_0 = decode_reveal_stage(musig_0);
         let musig_1 = get_musig(secret_key_1);
         let musig_2 = get_musig(secret_key_2);
         let pubkeys = PUBLIC0.to_owned() + PUBLIC1 + PUBLIC2;
@@ -437,6 +543,10 @@ mod tests {
         let reveals = reveal_0 + reveal_1.as_str() + reveal_2.as_str();
         let reveals = CString::new(reveals.as_str()).unwrap().into_raw();
         let musig_0 = cosign_stage(musig_0, reveals, pubkeys);
+        // Cosign stage object serialization
+        let musig_0 = encode_cosign_stage(musig_0);
+        // Cosign stage object deserialization
+        let musig_0 = decode_cosign_stage(musig_0);
         let musig_1 = cosign_stage(musig_1, reveals, pubkeys);
         let musig_2 = cosign_stage(musig_2, reveals, pubkeys);
         let cosign_0 = convert_char_to_str(get_my_cosign(musig_0));

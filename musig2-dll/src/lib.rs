@@ -118,13 +118,8 @@ pub fn r_get_round2_state(
         }
         &mut *round1_state
     };
-    let (message, pubkeys, receievd_round1_msg, party_index) = round2_state_parse(
-        round1_state,
-        message,
-        my_pubkey,
-        pubkeys,
-        receievd_round1_msg,
-    )?;
+    let (message, pubkeys, receievd_round1_msg, party_index) =
+        round2_state_parse(message, my_pubkey, pubkeys, receievd_round1_msg)?;
 
     let (round2_state, _) =
         round1_state.sign_prime(&message, &pubkeys, receievd_round1_msg, party_index)?;
@@ -132,7 +127,6 @@ pub fn r_get_round2_state(
 }
 
 pub fn round2_state_parse(
-    round1_state: &mut State,
     message: *const c_char,
     my_pubkey: *const c_char,
     pubkeys: *const c_char,
@@ -267,9 +261,14 @@ mod tests {
     const PRIVATEA: &str = "5495822c4f8efbe17b9bae42a85e8998baec458f3824440d1ce8d9357ad4a7b7";
     const PRIVATEB: &str = "cef4bbc9689812098c379bec0bb063a895916008344ca04cddbd21ccbcce3bcf";
     const PRIVATEC: &str = "c9045032eb6df7ebc51d862f9a6a8ffa90eb691dc1b70b4c7b8d1ed0fd8cc25f";
-    const PUBKEYA: &str = "f3fbf75d785b11d6fbd1d5dbd8defa10ddfbe77dde38a9810ec17352a21dbf0e";
-    const PUBKEYB: &str = "e5512cb2c53c6e8719b46ed8a2c63b4537be790d0c5df10404401d51d99e3490";
-    const PUBKEYC: &str = "ff4b91553015db3370eba90d05d8d90026ae1088c433e3cdf6f544a10b640b07";
+    // const PUBKEYA: &str = "f3fbf75d785b11d6fbd1d5dbd8defa10ddfbe77dde38a9810ec17352a21dbf0e";
+    // const PUBKEYB: &str = "e5512cb2c53c6e8719b46ed8a2c63b4537be790d0c5df10404401d51d99e3490";
+    // const PUBKEYC: &str = "ff4b91553015db3370eba90d05d8d90026ae1088c433e3cdf6f544a10b640b07";
+
+    fn convert_keypair_pointer(k: *mut KeyPair) -> KeyPair {
+        let k = unsafe { &mut *k };
+        k.clone()
+    }
 
     #[test]
     fn test_multiparty_signing_for_three_parties2() -> Result<(), Error> {
@@ -281,10 +280,11 @@ mod tests {
         let keypair_b = get_my_keypair(privkey_b);
         let keypair_c = get_my_keypair(privkey_c);
 
-        let public_a = PublicKey::try_from(PUBKEYA)?;
-        let public_b = PublicKey::try_from(PUBKEYB)?;
-        let public_c = PublicKey::try_from(PUBKEYC)?;
+        let public_a = convert_keypair_pointer(keypair_a).public_key.clone();
+        let public_b = convert_keypair_pointer(keypair_b).public_key.clone();
+        let public_c = convert_keypair_pointer(keypair_c).public_key.clone();
 
+        // assert_eq!(keypair.public_key, public_a);
         let pubkeys = [
             public_a.serialize().to_vec(),
             public_b.serialize().to_vec(),
@@ -368,8 +368,8 @@ mod tests {
         )?;
 
         let r_a = r_get_round2_r(round2_state_a)?;
-        let r_b = r_get_round2_r(round2_state_b)?;
-        let r_c = r_get_round2_r(round2_state_c)?;
+        let _r_b = r_get_round2_r(round2_state_b)?;
+        let _r_c = r_get_round2_r(round2_state_c)?;
 
         let round2_msg_a = r_get_round2_msg(round2_state_a)?;
         let round2_msg_b = r_get_round2_msg(round2_state_b)?;
@@ -382,14 +382,14 @@ mod tests {
             ]
             .concat(),
         )?;
-        let round2_receieved_b = r_bytes_to_c_char(
+        let _round2_receieved_b = r_bytes_to_c_char(
             [
                 c_char_to_r_bytes(round2_msg_c)?,
                 c_char_to_r_bytes(round2_msg_a)?,
             ]
             .concat(),
         )?;
-        let round2_receieved_c = r_bytes_to_c_char(
+        let _round2_receieved_c = r_bytes_to_c_char(
             [
                 c_char_to_r_bytes(round2_msg_a)?,
                 c_char_to_r_bytes(round2_msg_b)?,

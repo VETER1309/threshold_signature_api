@@ -1,0 +1,15 @@
+[package]
+name = "musig2-dll"
+authors = ["The ChainX Authors"]
+edition = "2018"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+musig2 = { git = "https://github.com/chainx-org/Musig2", branch = "lib" }
+libc = { version = "0.2.0" }
+hex = "0.4.3"
+
+[dev-dependencies]
+libsecp256k1 = { version = "0.6", default-features = false, features = ["hmac", "static-context"] }

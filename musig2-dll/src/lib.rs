@@ -17,6 +17,12 @@ const PRIVATEKEY_NORMAL_SIZE: usize = 32;
 const KEYPAIR_NORMAL_SIZE: usize = PUBLICKEY_NORMAL_SIZE + PRIVATEKEY_NORMAL_SIZE;
 const ROUND1_MSG_SIZE: usize = Nv * PUBLICKEY_NORMAL_SIZE;
 
+/// Pass in the 32-byte private key string to generate the [`KeyPair`]
+///
+/// Returns: [`KeyPair`] Pointer
+/// If the keypair cannot be generated, a null pointer will be returned.
+/// Note:
+///   the [`KeyPair`] contains the personal [`PrivateKey`] and can only be used locally.
 #[no_mangle]
 pub extern "C" fn get_my_keypair(privkey: *const c_char) -> *mut KeyPair {
     match r_get_my_keypair(privkey) {
@@ -33,6 +39,14 @@ pub fn r_get_my_keypair(privkey: *const c_char) -> Result<*mut KeyPair, Error> {
     let keypair = KeyPair::create_from_private_key(&bytes)?;
 
     Ok(Box::into_raw(Box::new(keypair)))
+}
+
+#[no_mangle]
+pub extern "C" fn get_key_agg(pubkeys: *const c_char, my_pubkey: *const c_char) -> *mut c_char {
+    match r_get_key_agg(pubkeys, my_pubkey) {
+        Ok(keypair) => keypair,
+        Err(_) => Error::NormalError.into(),
+    }
 }
 
 pub fn r_get_key_agg(
@@ -63,10 +77,22 @@ pub fn r_get_key_agg(
     Ok(r_bytes_to_c_char(key_agg_bytes.to_vec())?)
 }
 
+/// Use [`KeyPair`] to calculate the [`State`] of the first round
+///
+/// Returns: [`State`] Pointer
+/// If the calculation fails just a null pointer will be returned.
+#[no_mangle]
+pub extern "C" fn get_round1_state(keypair: *mut KeyPair) -> *mut State {
+    match r_get_round1_state(keypair) {
+        Ok(keypair) => keypair,
+        Err(_) => null_mut(),
+    }
+}
+
 pub fn r_get_round1_state(keypair: *mut KeyPair) -> Result<*mut State, Error> {
     let keypair = unsafe {
         if keypair.is_null() {
-            return Err(Error::NormalError);
+            return Err(Error::NullKeypair);
         }
         &mut *keypair
     };
@@ -75,10 +101,22 @@ pub fn r_get_round1_state(keypair: *mut KeyPair) -> Result<*mut State, Error> {
     Ok(Box::into_raw(Box::new(state)))
 }
 
+/// Passed round1 [`State`] to generate msg which will broadcast
+///
+/// Returns: msg String
+/// Possible errors are `Normal Error` and `Null Round1 State Pointer`.
+#[no_mangle]
+pub extern "C" fn get_round1_msg(state: *mut State) -> *mut c_char {
+    match r_get_round1_msg(state) {
+        Ok(msg) => msg,
+        Err(e) => e.into(),
+    }
+}
+
 pub fn r_get_round1_msg(state: *mut State) -> Result<*mut c_char, Error> {
     let state = unsafe {
         if state.is_null() {
-            return Err(Error::NormalError);
+            return Err(Error::NullRound1State);
         }
         &mut *state
     };
@@ -93,16 +131,31 @@ pub fn r_get_round1_msg(state: *mut State) -> Result<*mut c_char, Error> {
     Ok(r_bytes_to_c_char(msg_bytes)?)
 }
 
-pub fn r_get_round2_r(round2_state: *mut StatePrime) -> Result<*mut c_char, Error> {
-    let round2_state = unsafe {
-        if round2_state.is_null() {
-            return Err(Error::NormalError);
-        }
-        &mut *round2_state
-    };
-
-    let r = round2_state.R.clone();
-    Ok(r_bytes_to_c_char(r.serialize().to_vec())?)
+/// It takes a lot of preparation to switch to round2 state([`StatePrime`]).
+/// You need the round1 [`State`], the message to sign for it,
+/// your own public key, everyone's public key, and everyone else's
+/// msgs from the round1.
+///
+/// Returns: [`StatePrime`] Pointer
+/// Failure will return a null pointer.
+#[no_mangle]
+pub extern "C" fn get_round2_state(
+    round1_state: *mut State,
+    message: *const c_char,
+    my_pubkey: *const c_char,
+    pubkeys: *const c_char,
+    receievd_round1_msg: *const c_char,
+) -> *mut StatePrime {
+    match r_get_round2_state(
+        round1_state,
+        message,
+        my_pubkey,
+        pubkeys,
+        receievd_round1_msg,
+    ) {
+        Ok(state) => state,
+        Err(_) => null_mut(),
+    }
 }
 
 pub fn r_get_round2_state(
@@ -178,14 +231,68 @@ pub fn round2_state_parse(
     Ok((message_bytes, pubkeys, round1_msgs, party_index))
 }
 
+/// A simple pass in [`StatePrime`] pointer can obtain R, which is mainly used
+/// to construct the signature later.
+///
+/// Returns: R String
+/// Possible errors are `Normal Error` and `Null Round2 State Pointer`.
+#[no_mangle]
+pub extern "C" fn get_round2_r(round2_state: *mut StatePrime) -> *mut c_char {
+    match r_get_round2_r(round2_state) {
+        Ok(r) => r,
+        Err(e) => e.into(),
+    }
+}
+
+pub fn r_get_round2_r(round2_state: *mut StatePrime) -> Result<*mut c_char, Error> {
+    let round2_state = unsafe {
+        if round2_state.is_null() {
+            return Err(Error::NullRound2State);
+        }
+        &mut *round2_state
+    };
+
+    let r = round2_state.R.clone();
+    Ok(r_bytes_to_c_char(r.serialize().to_vec())?)
+}
+
+/// Pass in [`StatePrime`] pointer to get the msg for the round2.
+///
+/// Returns: msg String
+/// Possible errors are `Normal Error` and `Null Round2 State Pointer`.
+#[no_mangle]
+pub extern "C" fn get_round2_msg(round2_state: *mut StatePrime) -> *mut c_char {
+    match r_get_round2_msg(round2_state) {
+        Ok(msg) => msg,
+        Err(e) => e.into(),
+    }
+}
+
 pub fn r_get_round2_msg(round2_state: *mut StatePrime) -> Result<*mut c_char, Error> {
     let round2_state = unsafe {
         if round2_state.is_null() {
-            return Err(Error::NormalError);
+            return Err(Error::NullRound2State);
         }
         &mut *round2_state
     };
     Ok(r_bytes_to_c_char(round2_state.s_i.serialize().to_vec())?)
+}
+
+/// To construct a signature requires the status of the round2,
+/// msg about the second round of all other signers, and its own R.
+///
+/// Returns: signature String
+/// Possible errors are `Normal Error` and `Null Round2 State Pointer`.
+#[no_mangle]
+pub extern "C" fn get_signature(
+    round2_state: *mut StatePrime,
+    receievd_round2_msg: *const c_char,
+    r: *const c_char,
+) -> *mut c_char {
+    match r_get_signature(round2_state, receievd_round2_msg, r) {
+        Ok(sig) => sig,
+        Err(e) => e.into(),
+    }
 }
 
 pub fn r_get_signature(
@@ -195,7 +302,7 @@ pub fn r_get_signature(
 ) -> Result<*mut c_char, Error> {
     let round2_state = unsafe {
         if round2_state.is_null() {
-            return Err(Error::NormalError);
+            return Err(Error::NullRound2State);
         }
         &mut *round2_state
     };

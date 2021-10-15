@@ -16,31 +16,25 @@ pub enum Error {
 }
 
 impl From<Utf8Error> for Error {
-    fn from(e: Utf8Error) -> Self {
-        match e {
-            _ => Self::NormalError,
-        }
+    fn from(_: Utf8Error) -> Self {
+        Self::NormalError
     }
 }
 
 impl From<FromHexError> for Error {
-    fn from(e: FromHexError) -> Self {
-        match e {
-            _ => Self::NormalError,
-        }
+    fn from(_: FromHexError) -> Self {
+        Self::NormalError
     }
 }
 
 impl From<musig2::Error> for Error {
-    fn from(e: musig2::Error) -> Self {
-        match e {
-            _ => Error::NormalError,
-        }
+    fn from(_: musig2::Error) -> Self {
+        Self::NormalError
     }
 }
 
 impl From<NulError> for Error {
-    fn from(e: NulError) -> Self {
+    fn from(_: NulError) -> Self {
         Self::NormalError
     }
 }

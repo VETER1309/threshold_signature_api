@@ -33,7 +33,9 @@ pub extern "C" fn get_my_keypair(privkey: *const c_char) -> *mut KeyPair {
 
 pub fn r_get_my_keypair(privkey: *const c_char) -> Result<*mut KeyPair, Error> {
     let secret_bytes = c_char_to_r_bytes(privkey)?;
-
+    if secret_bytes.len() != 32 {
+        return Err(Error::NormalError);
+    }
     let mut bytes = [0u8; 32];
     bytes.copy_from_slice(&secret_bytes[..]);
     let keypair = KeyPair::create_from_private_key(&bytes)?;
@@ -41,26 +43,45 @@ pub fn r_get_my_keypair(privkey: *const c_char) -> Result<*mut KeyPair, Error> {
     Ok(Box::into_raw(Box::new(keypair)))
 }
 
+/// Help to get the [`PublicKey`] in the [`KeyPair`]
+///
+/// Returns: pubkey string
+/// Possible errors are `Null KeyPair Pointer` and `Normal Error`.
 #[no_mangle]
-pub extern "C" fn get_key_agg(pubkeys: *const c_char, my_pubkey: *const c_char) -> *mut c_char {
-    match r_get_key_agg(pubkeys, my_pubkey) {
+pub extern "C" fn get_my_pubkey(keypair: *mut KeyPair) -> *mut c_char {
+    let keypair = unsafe {
+        if keypair.is_null() {
+            return Error::NullKeypair.into();
+        }
+        &mut *keypair
+    };
+
+    let pubkey = keypair.public_key.clone();
+    match r_bytes_to_c_char(pubkey.serialize().to_vec()) {
+        Ok(pubkey) => pubkey,
+        Err(_) => Error::NormalError.into(),
+    }
+}
+
+/// Pass in the public key to generate the aggregated public key
+///
+/// Returns: pubkey String
+/// Possible error is `Normal Error`.
+#[no_mangle]
+pub extern "C" fn get_key_agg(pubkeys: *const c_char) -> *mut c_char {
+    match r_get_key_agg(pubkeys) {
         Ok(keypair) => keypair,
         Err(_) => Error::NormalError.into(),
     }
 }
 
-pub fn r_get_key_agg(
-    pubkeys: *const c_char,
-    my_pubkey: *const c_char,
-) -> Result<*mut c_char, Error> {
-    let my_pubkey_bytes = c_char_to_r_bytes(my_pubkey)?;
-    let mut bytes = [0u8; 65];
-    bytes.copy_from_slice(&my_pubkey_bytes);
-    let my_pubkey = PublicKey::parse(&bytes)?;
-
+pub fn r_get_key_agg(pubkeys: *const c_char) -> Result<*mut c_char, Error> {
     let pubkeys_bytes = c_char_to_r_bytes(pubkeys)?;
     let mut pubkeys = Vec::new();
 
+    if pubkeys_bytes.len() % 65 != 0 {
+        return Err(Error::NormalError);
+    }
     let pubkeys_num = pubkeys_bytes.len() / 65;
 
     for n in 0..pubkeys_num {
@@ -69,8 +90,7 @@ pub fn r_get_key_agg(
         let pubkey = PublicKey::parse(&bytes)?;
         pubkeys.push(pubkey);
     }
-    let party_index = get_party_index(&pubkeys, &my_pubkey)?;
-    let key_agg = KeyAgg::key_aggregation_n(&pubkeys, party_index)?;
+    let key_agg = KeyAgg::key_aggregation_n(&pubkeys, 0)?;
     let mut key_agg_bytes = [0u8; KEYPAIR_NORMAL_SIZE];
     key_agg_bytes[..65].copy_from_slice(&key_agg.X_tilde.serialize());
     key_agg_bytes[65..].copy_from_slice(&key_agg.a_i.serialize());
@@ -188,13 +208,18 @@ pub fn round2_state_parse(
     let message_bytes = c_char_to_r_bytes(message)?;
 
     let my_pubkey_bytes = c_char_to_r_bytes(my_pubkey)?;
+    if my_pubkey_bytes.len() != 65 {
+        return Err(Error::NormalError);
+    }
     let mut bytes = [0u8; 65];
     bytes.copy_from_slice(&my_pubkey_bytes);
     let my_pubkey = PublicKey::parse(&bytes)?;
 
     let pubkeys_bytes = c_char_to_r_bytes(pubkeys)?;
     let mut pubkeys = Vec::new();
-
+    if pubkeys_bytes.len() % 65 != 0 {
+        return Err(Error::NormalError);
+    }
     let pubkeys_num = pubkeys_bytes.len() / 65;
 
     for n in 0..pubkeys_num {
@@ -205,6 +230,9 @@ pub fn round2_state_parse(
     }
 
     let received_round1_msg_bytes = c_char_to_r_bytes(receievd_round1_msg)?;
+    if received_round1_msg_bytes.len() % ROUND1_MSG_SIZE != 0 {
+        return Err(Error::NormalError);
+    }
     let round1_msg_num = received_round1_msg_bytes.len() / ROUND1_MSG_SIZE;
 
     let mut round1_msgs = Vec::new();
@@ -307,6 +335,9 @@ pub fn r_get_signature(
         &mut *round2_state
     };
     let r_receievd_round2_msg = c_char_to_r_bytes(receievd_round2_msg)?;
+    if r_receievd_round2_msg.len() % PRIVATEKEY_NORMAL_SIZE != 0 {
+        return Err(Error::NormalError);
+    }
     let round2_msg_num = r_receievd_round2_msg.len() / PRIVATEKEY_NORMAL_SIZE;
 
     let mut round2_msgs = Vec::new();
@@ -320,6 +351,9 @@ pub fn r_get_signature(
     let s = sign_double_prime(round2_state.clone(), &round2_msgs)?;
 
     let r_bytes = c_char_to_r_bytes(r)?;
+    if r_bytes.len() != PUBLICKEY_NORMAL_SIZE {
+        return Err(Error::NormalError);
+    }
     let mut public_bytes = [0u8; PUBLICKEY_NORMAL_SIZE];
     public_bytes.copy_from_slice(&r_bytes);
     let r = PublicKey::parse(&public_bytes)?;
@@ -405,11 +439,11 @@ mod tests {
         println!("pubkeys:{}", hex::encode(&pubkeys));
         let pubkeys = r_bytes_to_c_char(pubkeys)?;
 
-        let public_a = r_bytes_to_c_char(public_a.serialize().to_vec())?;
+        let public_a = get_my_pubkey(keypair_a);
 
-        let public_b = r_bytes_to_c_char(public_b.serialize().to_vec())?;
+        let public_b = get_my_pubkey(keypair_b);
 
-        let public_c = r_bytes_to_c_char(public_c.serialize().to_vec())?;
+        let public_c = get_my_pubkey(keypair_c);
 
         let round1_state_a = r_get_round1_state(keypair_a)?;
         let round1_state_b = r_get_round1_state(keypair_b)?;
@@ -513,7 +547,7 @@ mod tests {
         let r_sig = c_char_to_r_bytes(sig_a)?;
         println!("sig: {}", hex::encode(r_sig));
 
-        let agg = r_get_key_agg(pubkeys, public_a)?;
+        let agg = r_get_key_agg(pubkeys)?;
         let mut agg_pubkey_bytes = [0u8; PUBLICKEY_NORMAL_SIZE];
         agg_pubkey_bytes.copy_from_slice(&c_char_to_r_bytes(agg)?[..65]);
         let agg_pubkey = PublicKey::parse(&agg_pubkey_bytes)?;

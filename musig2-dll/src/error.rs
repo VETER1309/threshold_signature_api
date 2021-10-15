@@ -4,6 +4,7 @@ use std::{
 };
 
 use hex::FromHexError;
+use mast::error::MastError;
 
 #[derive(Debug)]
 pub enum Error {
@@ -12,7 +13,8 @@ pub enum Error {
     // null pointer errors
     NullKeypair,
     NullRound1State,
-    NullRound2State,
+    EncodeFail,
+    InvalidPublicBytes,
 }
 
 impl From<Utf8Error> for Error {
@@ -39,6 +41,14 @@ impl From<NulError> for Error {
     }
 }
 
+impl From<MastError> for Error {
+    fn from(e: MastError) -> Self {
+        match e {
+            _ => Self::NormalError,
+        }
+    }
+}
+
 impl From<Error> for *mut i8 {
     fn from(e: Error) -> Self {
         match e {
@@ -51,8 +61,11 @@ impl From<Error> for *mut i8 {
             Error::NullRound1State => unsafe {
                 CString::from_vec_unchecked(b"Null Round1 State Pointer".to_vec()).into_raw()
             },
-            Error::NullRound2State => unsafe {
-                CString::from_vec_unchecked(b"Null Round2 State Pointer".to_vec()).into_raw()
+            Error::EncodeFail => unsafe {
+                CString::from_vec_unchecked(b"Encode Fail".to_vec()).into_raw()
+            },
+            Error::InvalidPublicBytes => unsafe {
+                CString::from_vec_unchecked(b"Invalid Public Bytes".to_vec()).into_raw()
             },
         }
     }

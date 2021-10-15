@@ -15,6 +15,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3441f0f7b02788e948e47f457ca01f1d7e6d92c693bc132c22b087d3141c03ff"
 
 [[package]]
+name = "bech32"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf9ff0bbfd639f15c74af777d81383cf53efb7c93613f6cab67c6c11e05bbf8b"
+
+[[package]]
+name = "bitcoin_hashes"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "006cc91e1a1d99819bc5b8214be3555c1f0611b169f527a1fdc54ed1f2b745b0"
+dependencies = [
+ "core2",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -28,6 +43,15 @@ name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+
+[[package]]
+name = "core2"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2cf12d2dad3ed124aa116f59561428478993d69ab81ae4d30e5349c9c5b5a5f6"
+dependencies = [
+ "memchr",
+]
 
 [[package]]
 name = "cpufeatures"
@@ -181,8 +205,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "mast"
+version = "0.1.0"
+source = "git+https://github.com/chainx-org/mast?branch=Musig2#00826f62c371da148d3e826d19ffd26f32d3d297"
+dependencies = [
+ "arrayref",
+ "bech32",
+ "bitcoin_hashes",
+ "core2",
+ "digest",
+ "hex",
+ "musig2",
+ "rand 0.8.4",
+ "rand_core 0.6.3",
+ "sha2",
+]
+
+[[package]]
+name = "memchr"
+version = "2.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "308cc39be01b73d0d18f82a0e7b2a3df85245f84af96fdddc5d202d27e47b86a"
+
+[[package]]
 name = "musig2"
 version = "0.1.0"
+source = "git+https://github.com/chainx-org/Musig2?branch=lib#17301a41dbecd526ab02b5b67b18a990e2725e19"
 dependencies = [
  "arrayref",
  "digest",
@@ -203,7 +251,10 @@ dependencies = [
  "hex",
  "libc",
  "libsecp256k1",
+ "mast",
  "musig2",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

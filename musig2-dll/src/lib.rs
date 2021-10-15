@@ -7,8 +7,10 @@ use std::{
 
 use self::error::Error;
 use libc::c_char;
+use mast::Mast;
 use musig2::{
-    get_party_index, sign_double_prime, KeyAgg, KeyPair, Nv, PublicKey, State, StatePrime,
+    get_party_index, sign_double_prime, KeyAgg, KeyPair, Nv, PrivateKey, PublicKey, State,
+    StatePrime,
 };
 
 const PUBLICKEY_NORMAL_SIZE: usize = 65;
@@ -43,24 +45,27 @@ pub fn r_get_my_keypair(privkey: *const c_char) -> Result<*mut KeyPair, Error> {
     Ok(Box::into_raw(Box::new(keypair)))
 }
 
-/// Help to get the [`PublicKey`] in the [`KeyPair`]
+/// Help to get the [`PublicKey`] from privkey
 ///
 /// Returns: pubkey string
 /// Possible errors are `Null KeyPair Pointer` and `Normal Error`.
 #[no_mangle]
-pub extern "C" fn get_my_pubkey(keypair: *mut KeyPair) -> *mut c_char {
-    let keypair = unsafe {
-        if keypair.is_null() {
-            return Error::NullKeypair.into();
-        }
-        &mut *keypair
-    };
-
-    let pubkey = keypair.public_key.clone();
-    match bytes_to_c_char(pubkey.serialize().to_vec()) {
-        Ok(pubkey) => pubkey,
-        Err(_) => Error::NormalError.into(),
+pub extern "C" fn get_my_pubkey(privkey: *const c_char) -> *mut c_char {
+    match r_get_my_pubkey(privkey) {
+        Ok(pri) => pri,
+        Err(e) => e.into(),
     }
+}
+
+pub fn r_get_my_pubkey(privkey: *const c_char) -> Result<*mut c_char, Error> {
+    let secret_bytes = c_char_to_r_bytes(privkey)?;
+    if secret_bytes.len() != 32 {
+        return Err(Error::NormalError);
+    }
+    let mut bytes = [0u8; 32];
+    bytes.copy_from_slice(&secret_bytes[..]);
+    let pubkey = PublicKey::create_from_private_key(&PrivateKey::parse(&bytes)?);
+    bytes_to_c_char(pubkey.serialize().to_vec())
 }
 
 /// Pass in the public key to generate the aggregated public key
@@ -97,28 +102,81 @@ pub fn r_get_key_agg(pubkeys: *const c_char) -> Result<*mut c_char, Error> {
     Ok(bytes_to_c_char(key_agg_bytes.to_vec())?)
 }
 
-/// Use [`KeyPair`] to calculate the [`State`] of the first round
+/// Use privkey to calculate the [`State`] of the first round
 ///
 /// Returns: [`State`] Pointer
 /// If the calculation fails just a null pointer will be returned.
 #[no_mangle]
-pub extern "C" fn get_round1_state(keypair: *mut KeyPair) -> *mut State {
-    match r_get_round1_state(keypair) {
-        Ok(keypair) => keypair,
+pub extern "C" fn get_round1_state(privkey: *const c_char) -> *mut State {
+    match r_get_round1_state(privkey) {
+        Ok(s) => s,
         Err(_) => null_mut(),
     }
 }
 
-pub fn r_get_round1_state(keypair: *mut KeyPair) -> Result<*mut State, Error> {
-    let keypair = unsafe {
-        if keypair.is_null() {
-            return Err(Error::NullKeypair);
-        }
-        &mut *keypair
-    };
+pub fn r_get_round1_state(privkey: *const c_char) -> Result<*mut State, Error> {
+    let secret_bytes = c_char_to_r_bytes(privkey)?;
+    if secret_bytes.len() != 32 {
+        return Err(Error::NormalError);
+    }
+    let mut bytes = [0u8; 32];
+    bytes.copy_from_slice(&secret_bytes[..]);
+    let keypair = KeyPair::create_from_private_key(&bytes)?;
 
     let (_, state) = musig2::sign(keypair.clone())?;
     Ok(Box::into_raw(Box::new(state)))
+}
+
+/// encode [`State`] object.
+///
+/// Returns: state String
+/// Possible error is `Null Round1 State Pointer` or `Encode Fail`.
+#[no_mangle]
+pub extern "C" fn encode_round1_state(state: *mut State) -> *mut c_char {
+    match r_encode_round1_state(state) {
+        Ok(s) => s,
+        Err(e) => e.into(),
+    }
+}
+
+pub fn r_encode_round1_state(state: *mut State) -> Result<*mut c_char, Error> {
+    let state = unsafe {
+        if state.is_null() {
+            return Err(Error::NullRound1State);
+        }
+        &mut *state
+    };
+    match serde_json::to_string(state) {
+        Ok(s) => Ok(CString::new(s).map_err(|_| Error::EncodeFail)?.into_raw()),
+        Err(_) => Err(Error::EncodeFail),
+    }
+}
+
+/// Use string to decode [`State`] object.
+///
+/// Returns: [`State`]
+/// Failure will return a null pointer.
+#[no_mangle]
+pub extern "C" fn decode_round1_state(round1_state: *const c_char) -> *mut State {
+    match r_decode_round1_state(round1_state) {
+        Ok(s) => s,
+        Err(_) => null_mut(),
+    }
+}
+
+pub fn r_decode_round1_state(round1_state: *const c_char) -> Result<*mut State, Error> {
+    let round1_state = unsafe {
+        if round1_state.is_null() {
+            return Err(Error::NullRound1State);
+        }
+
+        CStr::from_ptr(round1_state)
+    };
+    let round1_state = round1_state.to_str()?;
+    match serde_json::from_str(round1_state) {
+        Ok(s) => Ok(Box::into_raw(Box::new(s))),
+        Err(_) => Err(Error::NullRound1State),
+    }
 }
 
 /// Passed round1 [`State`] to generate msg which will broadcast
@@ -315,6 +373,92 @@ pub fn c_char_to_r_bytes(char: *const c_char) -> Result<Vec<u8>, Error> {
     Ok(r_bytes)
 }
 
+#[no_mangle]
+pub extern "C" fn generate_threshold_pubkey(pubkeys: *const c_char, threshold: u8) -> *mut c_char {
+    match r_generate_tweak_pubkey(pubkeys, threshold as usize) {
+        Ok(pubkey) => pubkey,
+        Err(_) => Error::InvalidPublicBytes.into(),
+    }
+}
+
+pub fn r_generate_tweak_pubkey(
+    pubkeys: *const c_char,
+    threshold: usize,
+) -> Result<*mut c_char, Error> {
+    let mast = r_get_my_mast(pubkeys, threshold)?;
+    let tweak = mast.generate_tweak_pubkey()?;
+    let c_tweak_str = CString::new(tweak)?;
+    Ok(c_tweak_str.into_raw())
+}
+
+#[no_mangle]
+pub extern "C" fn generate_control_block(
+    pubkeys: *const c_char,
+    threshold: u8,
+    agg_pubkey: *const c_char,
+) -> *mut c_char {
+    match r_generate_control_block(pubkeys, threshold as usize, agg_pubkey) {
+        Ok(pubkey) => pubkey,
+        Err(_) => Error::InvalidPublicBytes.into(),
+    }
+}
+
+pub fn r_generate_control_block(
+    pubkeys: *const c_char,
+    threshold: usize,
+    agg_pubkey: *const c_char,
+) -> Result<*mut c_char, Error> {
+    let c_agg = unsafe {
+        if agg_pubkey.is_null() {
+            return Err(Error::InvalidPublicBytes);
+        }
+
+        CStr::from_ptr(agg_pubkey)
+    };
+
+    let r_agg_bytes = hex::decode(c_agg.to_str()?)?;
+    let mut keys = [0u8; PUBLICKEY_NORMAL_SIZE];
+    keys.copy_from_slice(&r_agg_bytes[0..PUBLICKEY_NORMAL_SIZE]);
+    let agg = PublicKey::parse(&keys)?;
+
+    let mast = r_get_my_mast(pubkeys, threshold)?;
+    let control = mast.generate_merkle_proof(&agg)?;
+    let control_hex = hex::encode(&control);
+    let c_control_str = CString::new(control_hex)?;
+    Ok(c_control_str.into_raw())
+}
+
+pub fn r_get_my_mast(pubkeys: *const c_char, threshold: usize) -> Result<Mast, Error> {
+    // construct the public key of all people
+    let c_pubkeys = unsafe {
+        if pubkeys.is_null() {
+            return Err(Error::InvalidPublicBytes);
+        }
+
+        CStr::from_ptr(pubkeys)
+    };
+
+    let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str()?)?;
+    // ensure that it is the correct public key length
+    if r_pubkeys_bytes.len() % PUBLICKEY_NORMAL_SIZE != 0 {
+        return Err(Error::InvalidPublicBytes);
+    }
+    let pubkeys_num = r_pubkeys_bytes.len() / PUBLICKEY_NORMAL_SIZE;
+
+    let mut pubkeys = Vec::new();
+    for n in 0..pubkeys_num {
+        let mut keys = [0u8; PUBLICKEY_NORMAL_SIZE];
+        keys.copy_from_slice(
+            &r_pubkeys_bytes
+                [n * PUBLICKEY_NORMAL_SIZE..n * PUBLICKEY_NORMAL_SIZE + PUBLICKEY_NORMAL_SIZE],
+        );
+        let publickey = PublicKey::parse(&keys)?;
+        pubkeys.push(publickey);
+    }
+
+    Ok(Mast::new(pubkeys, threshold)?)
+}
+
 #[cfg(test)]
 mod tests {
     use std::convert::TryFrom;
@@ -329,9 +473,13 @@ mod tests {
     const PRIVATEC: &str = "c9045032eb6df7ebc51d862f9a6a8ffa90eb691dc1b70b4c7b8d1ed0fd8cc25f";
     const MESSAGE: &str = "b9b74d5852010cc4bf1010500ae6a97eca7868c9779d50c60fb4ae568b01ea38";
 
-    fn convert_keypair_pointer(k: *mut KeyPair) -> KeyPair {
-        let k = unsafe { &mut *k };
-        k.clone()
+    fn convert_char_to_str(c: *mut c_char) -> String {
+        let c_str = unsafe {
+            assert!(!c.is_null());
+
+            CStr::from_ptr(c)
+        };
+        c_str.to_str().unwrap().to_owned()
     }
 
     #[test]
@@ -340,26 +488,27 @@ mod tests {
         let privkey_b = CString::new(PRIVATEB).unwrap().into_raw();
         let privkey_c = CString::new(PRIVATEC).unwrap().into_raw();
         let msg = CString::new(MESSAGE).unwrap().into_raw();
-        let keypair_a = get_my_keypair(privkey_a);
-        let keypair_b = get_my_keypair(privkey_b);
-        let keypair_c = get_my_keypair(privkey_c);
-        let pubkey_a = convert_keypair_pointer(keypair_a).public_key.clone();
-        let pubkey_b = convert_keypair_pointer(keypair_b).public_key.clone();
-        let pubkey_c = convert_keypair_pointer(keypair_c).public_key.clone();
-        let pubkeys = [
-            pubkey_a.serialize().to_vec(),
-            pubkey_b.serialize().to_vec(),
-            pubkey_c.serialize().to_vec(),
-        ]
-        .concat();
-        let pubkeys = bytes_to_c_char(pubkeys).unwrap();
-        let pubkey_a = get_my_pubkey(keypair_a);
-        let pubkey_b = get_my_pubkey(keypair_b);
-        let pubkey_c = get_my_pubkey(keypair_c);
 
-        let round1_state_a = get_round1_state(keypair_a);
-        let round1_state_b = get_round1_state(keypair_b);
-        let round1_state_c = get_round1_state(keypair_c);
+        let pubkey_a = get_my_pubkey(privkey_a);
+        let pubkey_b = get_my_pubkey(privkey_b);
+        let pubkey_c = get_my_pubkey(privkey_c);
+        let pubkeys = bytes_to_c_char(
+            [
+                c_char_to_r_bytes(pubkey_a).unwrap(),
+                c_char_to_r_bytes(pubkey_b).unwrap(),
+                c_char_to_r_bytes(pubkey_c).unwrap(),
+            ]
+            .concat(),
+        )
+        .unwrap();
+
+        let round1_state_a = get_round1_state(privkey_a);
+        // round1_state_a serialization
+        let round1_state_a = encode_round1_state(round1_state_a);
+        // round1_state_a deserialization
+        let round1_state_a = decode_round1_state(round1_state_a);
+        let round1_state_b = get_round1_state(privkey_b);
+        let round1_state_c = get_round1_state(privkey_c);
 
         let round1_msg_a = get_round1_msg(round1_state_a);
         let round1_msg_b = get_round1_msg(round1_state_b);
@@ -428,5 +577,61 @@ mod tests {
             &agg_pubkey,
         )
         .unwrap();
+    }
+
+    #[test]
+    fn generate_mulsig_pubkey_should_work() {
+        let privkey_a = CString::new(PRIVATEA).unwrap().into_raw();
+        let privkey_b = CString::new(PRIVATEB).unwrap().into_raw();
+        let privkey_c = CString::new(PRIVATEC).unwrap().into_raw();
+        let pubkey_a = get_my_pubkey(privkey_a);
+        let pubkey_b = get_my_pubkey(privkey_b);
+        let pubkey_c = get_my_pubkey(privkey_c);
+        let pubkeys = bytes_to_c_char(
+            [
+                c_char_to_r_bytes(pubkey_a).unwrap(),
+                c_char_to_r_bytes(pubkey_b).unwrap(),
+                c_char_to_r_bytes(pubkey_c).unwrap(),
+            ]
+            .concat(),
+        )
+        .unwrap();
+
+        let multi_pubkey = convert_char_to_str(generate_threshold_pubkey(pubkeys, 2));
+        assert_eq!(
+            "bc1pywwq3qwr7sa47l6z8ap6gjr2l4aeawydr8uq52scce4luldx44rs7dh83d",
+            multi_pubkey
+        );
+    }
+
+    #[test]
+    fn generate_control_block_should_work() {
+        let privkey_a = CString::new(PRIVATEA).unwrap().into_raw();
+        let privkey_b = CString::new(PRIVATEB).unwrap().into_raw();
+        let privkey_c = CString::new(PRIVATEC).unwrap().into_raw();
+        let pubkey_a = get_my_pubkey(privkey_a);
+        let pubkey_b = get_my_pubkey(privkey_b);
+        let pubkey_c = get_my_pubkey(privkey_c);
+        let pubkeys = bytes_to_c_char(
+            [
+                c_char_to_r_bytes(pubkey_a).unwrap(),
+                c_char_to_r_bytes(pubkey_b).unwrap(),
+                c_char_to_r_bytes(pubkey_c).unwrap(),
+            ]
+            .concat(),
+        )
+        .unwrap();
+        let pubkeys_ab = bytes_to_c_char(
+            [
+                c_char_to_r_bytes(pubkey_a).unwrap(),
+                c_char_to_r_bytes(pubkey_b).unwrap(),
+            ]
+            .concat(),
+        )
+        .unwrap();
+        let ab_agg = get_key_agg(pubkeys_ab);
+        let control =
+            hex::encode(&c_char_to_r_bytes(generate_control_block(pubkeys, 2, ab_agg)).unwrap());
+        assert_eq!("6d2a20536175de7fe1e1ebf4575bbcaf5d631a22cc5965d749a31e952d3587047ffed8458d4998e30ff685aa7b5107aa1aec0283be2f29a75d0868a84329711f553a5981c93a2e6f5f4f78c2ea1f992ace22b13f594ce7fe59b14f32ea216340", control);
     }
 }

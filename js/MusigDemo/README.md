@@ -15,12 +15,12 @@ This is the js version of musig api. Mainly to facilitate the construction of th
 # Api
 ### Musig
 **getMusig(private)**
-```javascript
+```
 Pass in the private key string to create the musig pointer for multi-signature.
 ```
 
 **getMyPubkey(private)**
-```javascript
+```
 Pass in the private key to get the public key.
 Returns: <String>
 Return a 32-byte public key string.
@@ -28,7 +28,7 @@ Possible error string returned is `Invalid Secret Bytes`.
 ```
 
 **getMyReveal(musig)**
-```javascript
+```
 Pass in the musig pointer.
 Returns: <String>
 Returns a 96-byte reveal string.
@@ -36,21 +36,21 @@ Possible error strings returned are `Null Musig` or `Invalid Reveal Bytes`.
 ```
 
 **encodeRevealStage(musig)**
-```javascript
+```
 Pass in the musig pointer.
 Returns: <String>
 Possible error strings returned are `Encode Fail`.
 ```
 
 **decodeRevealStage(reveal_stage)**
-```javascript
+```
 Pass in the reveal stage string.
 Returns: musig pointer
 Possible error strings returned are `Null Musig`.
 ```
 
 **getMyCosign(musig, [reveals], [pubkeys])**
-```javascript
+```
 Pass in the musig pointer, the reveals and public-keys of other signers.
 Returns: <String>
 Returns a 32-byte cosign string.
@@ -58,7 +58,7 @@ Possible error strings returned are `Null Musig` or `Invalid Cosign Bytes`.
 ```
 
 **getAggSignature([reveals], [pubkeys], [cosigns])**
-```javascript
+```
 Pass in the reveals, public-keys and cosigns of other signers.
 Returns: <String>
 Returns a 64-byte signature string.
@@ -66,7 +66,7 @@ Possible error string returned is `Invalid Signature`.
 ```
 
 **getAggPublicKey([pubkeys])**
-```javascript
+```
 Pass in the public-keys to be aggregated.
 Returns: <String>
 Returns a 32-byte aggregate public-key string.
@@ -76,7 +76,7 @@ Possible error strings returned are `Null Musig` or `Invalid Commit Bytes`.
 ### Mast
 
 **generateThresholdPubkey(pubkeys, threshold)**
-```javascript
+```
 Generate threshold signature addresses by passing in 
 all signer public keys and signature thresholds.
 Returns: <String>
@@ -84,7 +84,7 @@ Return the public key of the threshold-signature address.
 Possible error string returned is `Invalid Public Bytes`.
 ```
 **generateControlBlock(pubkeys, threshold, aggPubkey)**
-```javascript
+```
 Generate a proof of the aggregated public key by 
 passing in the public key and signature threshold of 
 all signers and the aggregated public key of everyone 

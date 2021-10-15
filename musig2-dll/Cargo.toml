@@ -11,7 +11,8 @@ version = "0.1.0"
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-musig2 = { git = "https://github.com/chainx-org/Musig2", branch = "lib" }
+#musig2 = { git = "https://github.com/chainx-org/Musig2", branch = "lib" }
+musig2 = { path="../../Musig2" }
 libc = { version = "0.2.0" }
 hex = "0.4.3"
 

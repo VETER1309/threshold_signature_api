@@ -222,14 +222,14 @@ pub extern "C" fn get_round2_msg(
     message: *const c_char,
     my_pubkey: *const c_char,
     pubkeys: *const c_char,
-    receievd_round1_msg: *const c_char,
+    received_round1_msg: *const c_char,
 ) -> *mut c_char {
     match r_get_round2_msg(
         round1_state,
         message,
         my_pubkey,
         pubkeys,
-        receievd_round1_msg,
+        received_round1_msg,
     ) {
         Ok(state) => state,
         Err(_) => null_mut(),
@@ -241,7 +241,7 @@ pub fn r_get_round2_msg(
     message: *const c_char,
     my_pubkey: *const c_char,
     pubkeys: *const c_char,
-    receievd_round1_msg: *const c_char,
+    received_round1_msg: *const c_char,
 ) -> Result<*mut c_char, Error> {
     let round1_state = unsafe {
         if round1_state.is_null() {
@@ -249,11 +249,11 @@ pub fn r_get_round2_msg(
         }
         &mut *round1_state
     };
-    let (message, pubkeys, receievd_round1_msg, party_index) =
-        round2_state_parse(message, my_pubkey, pubkeys, receievd_round1_msg)?;
+    let (message, pubkeys, received_round1_msg, party_index) =
+        round2_state_parse(message, my_pubkey, pubkeys, received_round1_msg)?;
 
     let round2_state =
-        round1_state.sign_prime(&message, &pubkeys, receievd_round1_msg, party_index)?;
+        round1_state.sign_prime(&message, &pubkeys, received_round1_msg, party_index)?;
     Ok(bytes_to_c_char(round2_state.serialize().to_vec())?)
 }
 
@@ -261,7 +261,7 @@ pub fn round2_state_parse(
     message: *const c_char,
     my_pubkey: *const c_char,
     pubkeys: *const c_char,
-    receievd_round1_msg: *const c_char,
+    received_round1_msg: *const c_char,
 ) -> Result<(Vec<u8>, Vec<PublicKey>, Vec<Vec<PublicKey>>, usize), Error> {
     let message_bytes = c_char_to_r_bytes(message)?;
 
@@ -287,7 +287,7 @@ pub fn round2_state_parse(
         pubkeys.push(pubkey);
     }
 
-    let received_round1_msg_bytes = c_char_to_r_bytes(receievd_round1_msg)?;
+    let received_round1_msg_bytes = c_char_to_r_bytes(received_round1_msg)?;
     if received_round1_msg_bytes.len() % ROUND1_MSG_SIZE != 0 {
         return Err(Error::NormalError);
     }
@@ -558,7 +558,7 @@ mod tests {
 
         let sig_char = get_signature(round2_received);
         let mut sig_bytes = [0u8; 64];
-        sig_bytes.copy_from_slice(&c_char_to_r_bytes(sig_char).unwrap()[..64]);
+        sig_bytes.copy_from_slice(&hex::decode("0efdb438e76d90aea3ef5f704ff19734ff2f3506ba8e2661455ffc49904ef0267cc578257c3e764675888a982aa6caa58d0a5b637e029c2d2f55124db4565c3c").unwrap()[..64]);
         let signature = Signature::try_from(sig_bytes).unwrap();
 
         let r_sig = c_char_to_r_bytes(sig_char).unwrap();

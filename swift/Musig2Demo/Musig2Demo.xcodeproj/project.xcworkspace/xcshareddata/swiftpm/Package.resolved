@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "Musig2",
+        "repositoryURL": "https://github.com/AAweidai/Musig2",
+        "state": {
+          "branch": null,
+          "revision": "0c515950a36ecfde42abcfc45add11434d7a57d5",
+          "version": "1.0.0"
+        }
+      }
+    ]
+  },
+  "version": 1
+}

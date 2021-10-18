@@ -19,32 +19,6 @@ const KEYPAIR_NORMAL_SIZE: usize = PUBLICKEY_NORMAL_SIZE + PRIVATEKEY_NORMAL_SIZ
 const ROUND1_MSG_SIZE: usize = Nv * PUBLICKEY_NORMAL_SIZE;
 const STATE_PRIME_SIZE: usize = 97;
 
-/// Pass in the 32-byte private key string to generate the [`KeyPair`]
-///
-/// Returns: [`KeyPair`] Pointer
-/// If the keypair cannot be generated, a null pointer will be returned.
-/// Note:
-///   the [`KeyPair`] contains the personal [`PrivateKey`] and can only be used locally.
-#[no_mangle]
-pub extern "C" fn get_my_keypair(privkey: *const c_char) -> *mut KeyPair {
-    match r_get_my_keypair(privkey) {
-        Ok(keypair) => keypair,
-        Err(_) => null_mut(),
-    }
-}
-
-pub fn r_get_my_keypair(privkey: *const c_char) -> Result<*mut KeyPair, Error> {
-    let secret_bytes = c_char_to_r_bytes(privkey)?;
-    if secret_bytes.len() != 32 {
-        return Err(Error::NormalError);
-    }
-    let mut bytes = [0u8; 32];
-    bytes.copy_from_slice(&secret_bytes[..]);
-    let keypair = KeyPair::create_from_private_key(&bytes)?;
-
-    Ok(Box::into_raw(Box::new(keypair)))
-}
-
 /// Help to get the [`PublicKey`] from privkey
 ///
 /// Returns: pubkey string
@@ -70,7 +44,7 @@ pub fn r_get_my_pubkey(privkey: *const c_char) -> Result<*mut c_char, Error> {
 
 /// Pass in the public key to generate the aggregated public key
 ///
-/// Returns: pubkey String
+/// Returns: pubkey String.
 /// Possible error is `Normal Error`.
 #[no_mangle]
 pub extern "C" fn get_key_agg(pubkeys: *const c_char) -> *mut c_char {
@@ -104,7 +78,7 @@ pub fn r_get_key_agg(pubkeys: *const c_char) -> Result<*mut c_char, Error> {
 
 /// Use privkey to calculate the [`State`] of the first round
 ///
-/// Returns: [`State`] Pointer
+/// Returns: [`State`] Pointer.
 /// If the calculation fails just a null pointer will be returned.
 #[no_mangle]
 pub extern "C" fn get_round1_state(privkey: *const c_char) -> *mut State {
@@ -129,7 +103,7 @@ pub fn r_get_round1_state(privkey: *const c_char) -> Result<*mut State, Error> {
 
 /// encode [`State`] object.
 ///
-/// Returns: state String
+/// Returns: state String.
 /// Possible error is `Null Round1 State Pointer` or `Encode Fail`.
 #[no_mangle]
 pub extern "C" fn encode_round1_state(state: *mut State) -> *mut c_char {
@@ -154,7 +128,7 @@ pub fn r_encode_round1_state(state: *mut State) -> Result<*mut c_char, Error> {
 
 /// Use string to decode [`State`] object.
 ///
-/// Returns: [`State`]
+/// Returns: [`State`].
 /// Failure will return a null pointer.
 #[no_mangle]
 pub extern "C" fn decode_round1_state(round1_state: *const c_char) -> *mut State {
@@ -181,7 +155,7 @@ pub fn r_decode_round1_state(round1_state: *const c_char) -> Result<*mut State, 
 
 /// Passed round1 [`State`] to generate msg which will broadcast
 ///
-/// Returns: msg String
+/// Returns: msg String.
 /// Possible errors are `Normal Error` and `Null Round1 State Pointer`.
 #[no_mangle]
 pub extern "C" fn get_round1_msg(state: *mut State) -> *mut c_char {
@@ -214,7 +188,7 @@ pub fn r_get_round1_msg(state: *mut State) -> Result<*mut c_char, Error> {
 /// your own public key, everyone's public key, and everyone else's
 /// msgs from the round1.
 ///
-/// Returns: [`StatePrime`] Pointer
+/// Returns: [`StatePrime`] Pointer.
 /// Failure will return a null pointer.
 #[no_mangle]
 pub extern "C" fn get_round2_msg(
@@ -317,10 +291,10 @@ pub fn round2_state_parse(
     Ok((message_bytes, pubkeys, round1_msgs, party_index))
 }
 
-/// To construct a signature requires the status of the round2,
+/// To construct a signature requires the status of the round2
 /// msg about the second round of all other signers, and its own R.
 ///
-/// Returns: signature String
+/// Returns: signature String.
 /// Possible errors are `Normal Error` and `Null Round2 State Pointer`.
 #[no_mangle]
 pub extern "C" fn get_signature(receievd_round2_msg: *const c_char) -> *mut c_char {
@@ -373,6 +347,11 @@ pub fn c_char_to_r_bytes(char: *const c_char) -> Result<Vec<u8>, Error> {
     Ok(r_bytes)
 }
 
+/// Generate threshold signature addresses by passing in
+/// all signer public keys and signature thresholds.
+///
+/// Returns: String. Return the public key of the threshold-signature address.
+/// Possible error string returned is `Invalid Public Bytes`.
 #[no_mangle]
 pub extern "C" fn generate_threshold_pubkey(pubkeys: *const c_char, threshold: u8) -> *mut c_char {
     match r_generate_tweak_pubkey(pubkeys, threshold as usize) {
@@ -391,6 +370,14 @@ pub fn r_generate_tweak_pubkey(
     Ok(c_tweak_str.into_raw())
 }
 
+/// Generate a proof of the aggregated public key by
+/// passing in the public key and signature threshold of
+/// all signers and the aggregated public key of everyone
+/// who performed the signature this time.
+///
+/// Returns: String.
+/// Return signed proofs for transaction validation.
+/// Possible error string returned is `Invalid Public Bytes`.
 #[no_mangle]
 pub extern "C" fn generate_control_block(
     pubkeys: *const c_char,

@@ -2,61 +2,69 @@ const ffi = require('ffi-napi');
 
 const lib_path = __dirname + "/libmusig2_dll"
 const lib = ffi.Library(lib_path, {
-    get_my_keypair: ['pointer', ['string']],
-    get_my_pubkey: ['string', ['pointer']],
+    get_my_pubkey: ['string', ['string']],
     get_key_agg: ['string', ['string']],
-    get_round1_state: ['pointer', ['pointer']],
+    get_round1_state: ['pointer', ['string']],
     get_round1_msg: ['string', ['pointer']],
-    get_round2_state: ['pointer', ['pointer', 'string', 'string', 'string', 'string']],
-    get_round2_r: ['string', ['pointer']],
-    get_round2_msg: ['string', ['pointer']],
-    get_signature: ['string', ['pointer', 'string', 'string']],
+    encode_round1_state: ['string', ['pointer']],
+    decode_round1_state: ['pointer', ['string']],
+    get_round2_msg: ['string', ['pointer', 'string', 'string', 'string', 'string']],
+    get_signature: ['string', ['string']],
+    generate_threshold_pubkey: ['string', ['string', 'uint8']],
+    generate_control_block: ['string', ['string', 'uint8', 'string']],
 });
 
-getMyKeypair = function (priv) {
-    return lib.get_my_keypair(priv)
+getMyPubkey = function (priv) {
+    return lib.get_my_pubkey(priv)
 }
 
-getMyPubkey = function (keypair) {
-    return lib.get_my_pubkey(keypair)
-}
-
-getAggregationKey = function (pubkeys) {
+getAggPublicKey = function (pubkeys) {
     return lib.get_key_agg(pubkeys.join(""))
 }
 
-getRound1State = function (keypair) {
-    return lib.get_round1_state(keypair)
+getRound1State = function (priv) {
+    return lib.get_round1_state(priv)
+}
+
+encodeRound1State = function (round1State) {
+    return lib.encode_round1_state(round1State)
+}
+
+decodeRound1State = function (round1State) {
+    return lib.decode_round1_state(round1State)
 }
 
 getRound1Msg = function (round1State) {
     return lib.get_round1_msg(round1State)
 }
 
-getRound2State = function (round1State, message, myPubkey, pubkeys, receivedRound1Msgs) {
-    return lib.get_round2_state(round1State, message, myPubkey, pubkeys.join(""), receivedRound1Msgs.join(""))
+getRound2Msg = function (round1State, message, myPubkey, pubkeys, receivedRound1Msgs) {
+    return lib.get_round2_msg(round1State, message, myPubkey, pubkeys.join(""), receivedRound1Msgs.join(""))
 }
 
-getRound2R = function (round2State) {
-    return lib.get_round2_r(round2State)
+getAggSignature = function (receivedRound2Msgs) {
+    return lib.get_signature(receivedRound2Msgs.join(""))
 }
 
-getRound2Msg = function (round2State) {
-    return lib.get_round2_msg(round2State)
+generateThresholdPubkey = function (pubkeys, threshold) {
+    return lib.generate_threshold_pubkey(pubkeys.join(""), threshold)
 }
 
-getSignature = function (round2State, receivedRound2Msgs, R) {
-    return lib.get_signature(round2State, receivedRound2Msgs.join(""), R)
+generateControlBlock = function (pubkeys, threshold, aggPubkey) {
+    return lib.generate_control_block(pubkeys.join(""), threshold, aggPubkey)
 }
 
 module.exports = {
-    getMyKeypair,
     getMyPubkey,
-    getAggregationKey,
+    getAggPublicKey,
     getRound1State,
+    encodeRound1State,
+    decodeRound1State,
     getRound1Msg,
-    getRound2State,
-    getRound2R,
     getRound2Msg,
-    getSignature,
+    getAggSignature,
+    generateThresholdPubkey,
+    generateControlBlock,
 }
+
+

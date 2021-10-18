@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
 
+import com.chainx.musig2.Mast;
 import com.chainx.musig2.Musig2;
 import com.sun.jna.Pointer;
 
@@ -17,42 +18,39 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Pointer keypairA = Musig2.getMyKeypair(privateA);
-        Pointer keypairB = Musig2.getMyKeypair(privateA);
-        Pointer keypairC = Musig2.getMyKeypair(privateA);
 
-        String pubkeyA = Musig2.getMyPubkey(keypairA);
-        String pubkeyB = Musig2.getMyPubkey(keypairB);
-        String pubkeyC = Musig2.getMyPubkey(keypairC);
+        String pubkeyA = Musig2.getMyPubkey(privateA);
+        String pubkeyB = Musig2.getMyPubkey(privateB);
+        String pubkeyC = Musig2.getMyPubkey(privateC);
 
-        String[] pubkeys = new String[]{pubkeyA, pubkeyB, pubkeyC};
+        Pointer round1StateA = Musig2.getRound1State(privateA);
+        Pointer round1StateB = Musig2.getRound1State(privateB);
+        Pointer round1StateC = Musig2.getRound1State(privateC);
 
-        String aggPubkey = Musig2.getAggKey(pubkeys);
-
-        Pointer round1StateA = Musig2.getRound1State(keypairA);
-        Pointer round1StateB = Musig2.getRound1State(keypairB);
-        Pointer round1StateC = Musig2.getRound1State(keypairC);
+        String encodedRound1StateA = Musig2.encodeRound1State(round1StateA);
+        round1StateA = Musig2.decodeRound1State(encodedRound1StateA);
 
         String round1MsgA = Musig2.getRound1Msg(round1StateA);
         String round1MsgB = Musig2.getRound1Msg(round1StateB);
         String round1MsgC = Musig2.getRound1Msg(round1StateC);
 
-        Pointer round2StateA = Musig2.getRound2State(round1StateA, msg, pubkeyA, pubkeys, new String[]{round1MsgB, round1MsgC});
-        Pointer round2StateB = Musig2.getRound2State(round1StateB, msg, pubkeyB, pubkeys, new String[]{round1MsgA, round1MsgC});
-        Pointer round2StateC = Musig2.getRound2State(round1StateC, msg, pubkeyC, pubkeys, new String[]{round1MsgA, round1MsgB});
+        String[] pubkeys = new String[]{pubkeyA, pubkeyB, pubkeyC};
 
-        String round2RA = Musig2.getRound2R(round2StateA);
-        String round2RB = Musig2.getRound2R(round2StateB);
-        String round2RC = Musig2.getRound2R(round2StateC);
+        String round2MsgA = Musig2.getRound2Msg(round1StateA, msg, pubkeyA, pubkeys, new String[]{round1MsgB, round1MsgC});
+        String round2MsgB = Musig2.getRound2Msg(round1StateB, msg, pubkeyB, pubkeys, new String[]{round1MsgA, round1MsgC});
+        String round2MsgC = Musig2.getRound2Msg(round1StateC, msg, pubkeyC, pubkeys, new String[]{round1MsgA, round1MsgB});
 
-        String round2MsgA = Musig2.getRound2Msg(round2StateA);
-        String round2MsgB = Musig2.getRound2Msg(round2StateB);
-        String round2MsgC = Musig2.getRound2Msg(round2StateC);
+        String sig = Musig2.getAggSignature(new String[]{round2MsgA, round2MsgB, round2MsgC});
+        String pubkey = Musig2.getAggPublicKey(pubkeys);
+        System.out.println("signature: " + sig);
+        System.out.println("pubkey: " + pubkey);
 
-        String sig = Musig2.getSignature(round2StateA, new String[]{round2MsgB, round2MsgC}, round2RA);
+        String pubkeyAB = Musig2.getAggPublicKey(new String[]{pubkeyA, pubkeyB});
+        String thresholdPubkey = Mast.generateThresholdPubkey(pubkeys, (byte) 2);
+        String control = Mast.generateControlBlock(pubkeys, (byte) 2, pubkeyAB);
 
-        System.out.println("A's signature:" + sig);
-
+        System.out.println("thresholdPubkey:" + thresholdPubkey);
+        System.out.println("control:" + control);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
     }

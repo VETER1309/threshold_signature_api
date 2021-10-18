@@ -112,7 +112,7 @@ Possible error string returned is `Invalid Public Bytes`.
 
 # Example
 
-The specific usage can be viewed in [MainActivity.java](app/src/main/java/com/example/musigdemo/MainActivity.java).This example simulates three people generating aggregated public keys and aggregated signatures.
+The specific usage can be viewed in [MainActivity.java](src/main/java/com/example/musigdemo/MainActivity.java).This example simulates three people generating aggregated public keys and aggregated signatures.
 
 ## Details
 

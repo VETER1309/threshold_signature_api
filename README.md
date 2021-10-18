@@ -13,4 +13,4 @@ This project is mainly to write the api interface of the **Musig**  and **Musig2
 
 ## Musig2
 
-- Musig2 and Mast: Including  the documents related to the three versions of Musig2 and Mast: js ,Android, [IOS](https://github.com/chainx-org/threshold_signature_api/blob/main/swift/Musig2Demo/README.md). Note that the documents of the three versions are basically the same.  Note that the current Musig API is for bitcoin.
+- Musig2 and Mast: Including  the documents related to the three versions of Musig2 and Mast: [js](js/MusigDemo/README.md) ,[Android](java/MusigDemo/musig2demo/README.md), [IOS](https://github.com/chainx-org/threshold_signature_api/blob/main/swift/Musig2Demo/README.md). Note that the documents of the three versions are basically the same.  Note that the current Musig API is for bitcoin.

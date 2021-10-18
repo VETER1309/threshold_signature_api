@@ -4,7 +4,8 @@
   "description": "",
   "main": "src/example.js",
   "scripts": {
-    "example": "node src/example.js"
+    "musig": "node src/musig.js",
+    "musig2": "node src/musig2.js"
   },
   "author": "",
   "license": "ISC",

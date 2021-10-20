@@ -8,14 +8,9 @@ use std::{
 use self::error::Error;
 use libc::c_char;
 use mast::Mast;
-use musig2::{
-    get_party_index, sign_double_prime, KeyAgg, KeyPair, Nv, PrivateKey, PublicKey, State,
-    StatePrime,
-};
+use musig2::{sign_double_prime, KeyAgg, KeyPair, Nv, PrivateKey, PublicKey, State, StatePrime};
 
 const PUBLICKEY_NORMAL_SIZE: usize = 65;
-const PRIVATEKEY_NORMAL_SIZE: usize = 32;
-const KEYPAIR_NORMAL_SIZE: usize = PUBLICKEY_NORMAL_SIZE + PRIVATEKEY_NORMAL_SIZE;
 const ROUND1_MSG_SIZE: usize = Nv * PUBLICKEY_NORMAL_SIZE;
 const STATE_PRIME_SIZE: usize = 97;
 
@@ -69,35 +64,26 @@ pub fn r_get_key_agg(pubkeys: *const c_char) -> Result<*mut c_char, Error> {
         let pubkey = PublicKey::parse(&bytes)?;
         pubkeys.push(pubkey);
     }
-    let key_agg = KeyAgg::key_aggregation_n(&pubkeys, 0)?;
-    let mut key_agg_bytes = [0u8; KEYPAIR_NORMAL_SIZE];
+    let key_agg = KeyAgg::key_aggregation_n(&pubkeys)?;
+    let mut key_agg_bytes = [0u8; PUBLICKEY_NORMAL_SIZE];
     key_agg_bytes[..65].copy_from_slice(&key_agg.X_tilde.serialize());
-    key_agg_bytes[65..].copy_from_slice(&key_agg.a_i.serialize());
     Ok(bytes_to_c_char(key_agg_bytes.to_vec())?)
 }
 
-/// Use privkey to calculate the [`State`] of the first round
+/// Generate the [`State`] of the first round
 ///
 /// Returns: [`State`] Pointer.
 /// If the calculation fails just a null pointer will be returned.
 #[no_mangle]
-pub extern "C" fn get_round1_state(privkey: *const c_char) -> *mut State {
-    match r_get_round1_state(privkey) {
+pub extern "C" fn get_round1_state() -> *mut State {
+    match r_get_round1_state() {
         Ok(s) => s,
         Err(_) => null_mut(),
     }
 }
 
-pub fn r_get_round1_state(privkey: *const c_char) -> Result<*mut State, Error> {
-    let secret_bytes = c_char_to_r_bytes(privkey)?;
-    if secret_bytes.len() != 32 {
-        return Err(Error::NormalError);
-    }
-    let mut bytes = [0u8; 32];
-    bytes.copy_from_slice(&secret_bytes[..]);
-    let keypair = KeyPair::create_from_private_key(&bytes)?;
-
-    let (_, state) = musig2::sign(keypair.clone())?;
+pub fn r_get_round1_state() -> Result<*mut State, Error> {
+    let state = musig2::sign()?;
     Ok(Box::into_raw(Box::new(state)))
 }
 
@@ -174,9 +160,9 @@ pub fn r_get_round1_msg(state: *mut State) -> Result<*mut c_char, Error> {
     };
 
     let msg: Vec<[u8; 65]> = state
-        .ephk_vec
+        .our_reveals()
         .iter()
-        .map(|eph_key| eph_key.clone().keypair.public_key.serialize())
+        .map(|eph_key| eph_key.serialize())
         .collect();
     let msg_bytes = msg.concat();
 
@@ -194,17 +180,11 @@ pub fn r_get_round1_msg(state: *mut State) -> Result<*mut c_char, Error> {
 pub extern "C" fn get_round2_msg(
     round1_state: *mut State,
     message: *const c_char,
-    my_pubkey: *const c_char,
+    privkey: *const c_char,
     pubkeys: *const c_char,
     received_round1_msg: *const c_char,
 ) -> *mut c_char {
-    match r_get_round2_msg(
-        round1_state,
-        message,
-        my_pubkey,
-        pubkeys,
-        received_round1_msg,
-    ) {
+    match r_get_round2_msg(round1_state, message, privkey, pubkeys, received_round1_msg) {
         Ok(state) => state,
         Err(_) => null_mut(),
     }
@@ -213,7 +193,7 @@ pub extern "C" fn get_round2_msg(
 pub fn r_get_round2_msg(
     round1_state: *mut State,
     message: *const c_char,
-    my_pubkey: *const c_char,
+    privkey: *const c_char,
     pubkeys: *const c_char,
     received_round1_msg: *const c_char,
 ) -> Result<*mut c_char, Error> {
@@ -223,29 +203,29 @@ pub fn r_get_round2_msg(
         }
         &mut *round1_state
     };
-    let (message, pubkeys, received_round1_msg, party_index) =
-        round2_state_parse(message, my_pubkey, pubkeys, received_round1_msg)?;
+    let (message, pubkeys, received_round1_msg, keypair) =
+        round2_state_parse(message, privkey, pubkeys, received_round1_msg)?;
 
     let round2_state =
-        round1_state.sign_prime(&message, &pubkeys, received_round1_msg, party_index)?;
+        round1_state.sign_prime(&message, &pubkeys, &keypair, received_round1_msg)?;
     Ok(bytes_to_c_char(round2_state.serialize().to_vec())?)
 }
 
 pub fn round2_state_parse(
     message: *const c_char,
-    my_pubkey: *const c_char,
+    privkey: *const c_char,
     pubkeys: *const c_char,
     received_round1_msg: *const c_char,
-) -> Result<(Vec<u8>, Vec<PublicKey>, Vec<Vec<PublicKey>>, usize), Error> {
+) -> Result<(Vec<u8>, Vec<PublicKey>, Vec<Vec<PublicKey>>, KeyPair), Error> {
     let message_bytes = c_char_to_r_bytes(message)?;
 
-    let my_pubkey_bytes = c_char_to_r_bytes(my_pubkey)?;
-    if my_pubkey_bytes.len() != 65 {
+    let secret_bytes = c_char_to_r_bytes(privkey)?;
+    if secret_bytes.len() != 32 {
         return Err(Error::NormalError);
     }
-    let mut bytes = [0u8; 65];
-    bytes.copy_from_slice(&my_pubkey_bytes);
-    let my_pubkey = PublicKey::parse(&bytes)?;
+    let mut bytes = [0u8; 32];
+    bytes.copy_from_slice(&secret_bytes[..]);
+    let keypair = KeyPair::create_from_private_key(&bytes)?;
 
     let pubkeys_bytes = c_char_to_r_bytes(pubkeys)?;
     let mut pubkeys = Vec::new();
@@ -286,9 +266,7 @@ pub fn round2_state_parse(
         round1_msgs.push(round1_msg);
     }
 
-    let party_index = get_party_index(&pubkeys, &my_pubkey)?;
-
-    Ok((message_bytes, pubkeys, round1_msgs, party_index))
+    Ok((message_bytes, pubkeys, round1_msgs, keypair))
 }
 
 /// To construct a signature requires the status of the round2
@@ -489,13 +467,13 @@ mod tests {
         )
         .unwrap();
 
-        let round1_state_a = get_round1_state(privkey_a);
+        let round1_state_a = get_round1_state();
         // round1_state_a serialization
         let round1_state_a = encode_round1_state(round1_state_a);
         // round1_state_a deserialization
         let round1_state_a = decode_round1_state(round1_state_a);
-        let round1_state_b = get_round1_state(privkey_b);
-        let round1_state_c = get_round1_state(privkey_c);
+        let round1_state_b = get_round1_state();
+        let round1_state_c = get_round1_state();
 
         let round1_msg_a = get_round1_msg(round1_state_a);
         let round1_msg_b = get_round1_msg(round1_state_b);
@@ -527,11 +505,11 @@ mod tests {
         .unwrap();
 
         let round2_msg_a =
-            get_round2_msg(round1_state_a, msg, pubkey_a, pubkeys, round1_received_a);
+            get_round2_msg(round1_state_a, msg, privkey_a, pubkeys, round1_received_a);
         let round2_msg_b =
-            get_round2_msg(round1_state_b, msg, pubkey_b, pubkeys, round1_received_b);
+            get_round2_msg(round1_state_b, msg, privkey_b, pubkeys, round1_received_b);
         let round2_msg_c =
-            get_round2_msg(round1_state_c, msg, pubkey_c, pubkeys, round1_received_c);
+            get_round2_msg(round1_state_c, msg, privkey_c, pubkeys, round1_received_c);
 
         let round2_received = bytes_to_c_char(
             [
@@ -545,7 +523,7 @@ mod tests {
 
         let sig_char = get_signature(round2_received);
         let mut sig_bytes = [0u8; 64];
-        sig_bytes.copy_from_slice(&hex::decode("0efdb438e76d90aea3ef5f704ff19734ff2f3506ba8e2661455ffc49904ef0267cc578257c3e764675888a982aa6caa58d0a5b637e029c2d2f55124db4565c3c").unwrap()[..64]);
+        sig_bytes.copy_from_slice(&c_char_to_r_bytes(sig_char).unwrap()[..64]);
         let signature = Signature::try_from(sig_bytes).unwrap();
 
         let r_sig = c_char_to_r_bytes(sig_char).unwrap();
@@ -586,7 +564,7 @@ mod tests {
 
         let multi_pubkey = convert_char_to_str(generate_threshold_pubkey(pubkeys, 2));
         assert_eq!(
-            "bc1pywwq3qwr7sa47l6z8ap6gjr2l4aeawydr8uq52scce4luldx44rs7dh83d",
+            "bc1p297wygd7g3fwsjt80spqjsg8ydhjvq8ccr3a3xexhq8y3tsl0srqypr7zf",
             multi_pubkey
         );
     }
@@ -619,6 +597,6 @@ mod tests {
         let ab_agg = get_key_agg(pubkeys_ab);
         let control =
             hex::encode(&c_char_to_r_bytes(generate_control_block(pubkeys, 2, ab_agg)).unwrap());
-        assert_eq!("6d2a20536175de7fe1e1ebf4575bbcaf5d631a22cc5965d749a31e952d3587047ffed8458d4998e30ff685aa7b5107aa1aec0283be2f29a75d0868a84329711f553a5981c93a2e6f5f4f78c2ea1f992ace22b13f594ce7fe59b14f32ea216340", control);
+        assert_eq!("e9767f9fc30376efc53167707a4ceb905391be7ce971df6493942e1d008e0a7a9aaa5790c2bc7c2095f50c2b7d9c2fc9ba595352599a38b944bece8ea8b10141ddb1f00c976e5352a16f06008a1066bc30ecdca1196ab41c3447345d70b6da16", control);
     }
 }

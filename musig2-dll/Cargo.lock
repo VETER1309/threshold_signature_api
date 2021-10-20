@@ -143,9 +143,9 @@ checksum = "b71991ff56294aa922b450139ee08b3bfc70982c6b2c7562771375cf73542dd4"
 
 [[package]]
 name = "libc"
-version = "0.2.103"
+version = "0.2.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd8f7255a17a627354f321ef0055d63b898c6fb27eff628af4d1b66b7331edf6"
+checksum = "7b2f96d100e1cf1929e7719b7edb3b90ab5298072638fccd77be9ce942ecdfce"
 
 [[package]]
 name = "libsecp256k1"
@@ -207,7 +207,7 @@ dependencies = [
 [[package]]
 name = "mast"
 version = "0.1.0"
-source = "git+https://github.com/chainx-org/mast?branch=Musig2#00826f62c371da148d3e826d19ffd26f32d3d297"
+source = "git+https://github.com/chainx-org/mast?branch=Musig2#db01bac474826a937aea320275cde3339c24f72e"
 dependencies = [
  "arrayref",
  "bech32",
@@ -230,7 +230,7 @@ checksum = "308cc39be01b73d0d18f82a0e7b2a3df85245f84af96fdddc5d202d27e47b86a"
 [[package]]
 name = "musig2"
 version = "0.1.0"
-source = "git+https://github.com/chainx-org/Musig2?branch=lib#17301a41dbecd526ab02b5b67b18a990e2725e19"
+source = "git+https://github.com/chainx-org/Musig2?branch=lib#d62701995ea7250d093cab0b271615226d7a4b14"
 dependencies = [
  "arrayref",
  "digest",

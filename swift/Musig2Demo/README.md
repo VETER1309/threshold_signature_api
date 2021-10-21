@@ -137,7 +137,7 @@ round1_state0 = decodeRound1State(round1_state: state_str)
 - Pass the self-generated my_pubkey and round1 message to the other two parties, and the other two parties do the same. In the end, I got the public key and round1 message of the other two parties. Pass in the `getRound2Msg` function to generate my own round2 message. 
 
 ~~~swift
-let round2_msg0 = getRound2Msg(state: round1_state0, msg: msg, my_pubkey: pubkey0, pubkeys: [pubkey0, pubkey1, pubkey2], received_round1_msg:[round1_msg1, round1_msg2])
+let round2_msg0 = getRound2Msg(state: round1_state0, msg: msg, priv: private0, pubkeys: [pubkey0, pubkey1, pubkey2], received_round1_msg:[round1_msg1, round1_msg2])
 ~~~
 
 - Pass the round1 message to the other two parties, and I can finally generate the signature by `getAggSignature`. 

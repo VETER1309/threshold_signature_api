@@ -9,9 +9,9 @@ import com.chainx.musig.Mast;
 import com.sun.jna.Pointer;
 
 public class MainActivity extends AppCompatActivity {
-    final static String private1 = "54fa29a5b57041e930b2b0b7939540c076cda3754c4dc2ddb184fe60fe1b7f0c76df013ca315ae0a51a2b9a3eadfaca4fc91a750667d8d8592b0154e381c6da2";
-    final static String private2 = "db43ffe916f7aacef99a136ec04a504ab1b95a4023e1c2d2b36e98649bfcff0f45ceb6016fb7292732b940c1efe74d4fc20959a05869b79823ce01f06da84d38";
-    final static String private3 = "330d9f80e441be557a899b6cda38f243f1c089c8dd985df86f74a8f92f6025076ce7f9ba2ab95e2d33a24c16e4fd27c9bb73374045e23598f81cc670b57b4b59";
+    final static String phrase1 = "flame flock chunk trim modify raise rough client coin busy income smile"
+    final static String phrase2 = "shrug argue supply evolve alarm caught swamp tissue hollow apology youth ethics"
+    final static String phrase3 = "awesome beef hill broccoli strike poem rebel unique turn circle cool system"
 
     final static String publicA = "005431ba274d567440f1da2fc4b8bc37e90d8155bf158966907b3f67a9e13b2d";
     final static String publicB = "90b0ae8d9be3dab2f61595eb357846e98c185483aff9fa211212a87ad18ae547";
@@ -20,6 +20,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        String private1 = Musig.getMyPrivkey(phrase1);
+        String private2 = Musig.getMyPrivkey(phrase2);
+        String private3 = Musig.getMyPrivkey(phrase3);
+
         Pointer musig0 = Musig.getMusig(private1);
         String encodeMusig0 = Musig.encodeRevealStage(musig0);
         musig0 = Musig.decodeRevealStage(encodeMusig0);

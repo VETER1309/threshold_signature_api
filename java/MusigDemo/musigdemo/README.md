@@ -18,7 +18,7 @@ allprojects {
 Step 2. Add the dependency
 ```
 dependencies {
-	        implementation 'com.github.hacpy:musig:1.1.2'
+	        implementation 'com.github.hacpy:musig:1.2.0'
 	}
 ```
 
@@ -33,6 +33,14 @@ import com.example.musig.Mast;
 **getMusig(private)**
 ```java
 Pass in the private key string to create the musig pointer for multi-signature.
+```
+
+**getMyPrivkey(phrase)**
+```java
+Pass in the phrase to get the private key.
+Returns: <String>
+Return a 32-byte private key key string.
+Possible error string returned is `InvalidPhrase`.
 ```
 
 **getMyPubkey(private)**
@@ -121,6 +129,7 @@ The specific usage can be viewed in [MainActivity.java](src/main/java/com/exampl
 - First pass in the private key to declare a musig pointer and get my pubkey
 
 ~~~java
+String private1 = Musig.getMyPrivkey(phrase1);
 Pointer musig0 = Musig.getMusig(private1);
 String pubkey0 = Musig.getMyPubkey(private1);
 ~~~

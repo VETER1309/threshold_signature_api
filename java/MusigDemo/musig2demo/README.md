@@ -18,7 +18,7 @@ allprojects {
 Step 2. Add the dependency
 ```
 dependencies {
-	        implementation 'com.github.hacpy:musig2:1.1.2'
+	        implementation 'com.github.hacpy:musig2:1.2.0'
 	}
 ```
 
@@ -30,10 +30,10 @@ import com.example.musig2.Mast;
 
 # Api
 ### Musig2
-**getRound1State(private)**
+**getRound1State()**
 
 ```java
-Use privkey to calculate the State of the first round
+To get the State of the first round
 Returns: State Pointer If the calculation fails just a null pointer will be returned.
 ```
 
@@ -68,10 +68,10 @@ Returns: State.
 Failure will return a null pointer.
 ```
 
-**getRound2Msg(state, msg, my_pubkey, pubkeys, received_round1_msg)**
+**getRound2Msg(state, msg, privkey, pubkeys, received_round1_msg)**
 
 ```java
-It takes a lot of preparation to switch to round2 state(StatePrime). You need the round1 State, the message to sign for it, your own public key, everyone's public key, and everyone else's msgs from the round1.
+It takes a lot of preparation to switch to round2 state(StatePrime). You need the round1 State, the message to sign for it, your own private key, everyone's public key, and everyone else's msgs from the round1.
 Returns: StatePrime Pointer. 
 Failure will return a null pointer.
 ```
@@ -123,7 +123,7 @@ The specific usage can be viewed in [MainActivity.java](src/main/java/com/chainx
 - First pass in the private key to declare a State pointer and get my pubkey
 
 ~~~java
-Pointer round1StateA = Musig2.getRound1State(privateA);
+Pointer round1StateA = Musig2.getRound1State();
 String pubkeyA = Musig2.getMyPubkey(privateA);
 ~~~
 
@@ -148,7 +148,7 @@ round1StateA = Musig2.decodeRound1State(encodedRound1StateA);
 - Pass the self-generated my_pubkey and round1 message to the other two parties, and the other two parties do the same. In the end, I got the public key and round1 message of the other two parties. Pass in the `getRound2Msg` function to generate my own round2 message. 
 
 ~~~java
-String round2MsgA = Musig2.getRound2Msg(round1StateA, msg, pubkeyA, pubkeys, new String[]{round1MsgB, round1MsgC});
+String round2MsgA = Musig2.getRound2Msg(round1StateA, msg, privateA, pubkeys, new String[]{round1MsgB, round1MsgC});
 ~~~
 
 - Pass the round1 message to the other two parties, and I can finally generate the signature by `getAggSignature`. 

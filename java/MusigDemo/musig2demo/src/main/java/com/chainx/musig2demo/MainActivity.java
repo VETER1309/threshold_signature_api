@@ -23,9 +23,9 @@ public class MainActivity extends AppCompatActivity {
         String pubkeyB = Musig2.getMyPubkey(privateB);
         String pubkeyC = Musig2.getMyPubkey(privateC);
 
-        Pointer round1StateA = Musig2.getRound1State(privateA);
-        Pointer round1StateB = Musig2.getRound1State(privateB);
-        Pointer round1StateC = Musig2.getRound1State(privateC);
+        Pointer round1StateA = Musig2.getRound1State();
+        Pointer round1StateB = Musig2.getRound1State();
+        Pointer round1StateC = Musig2.getRound1State();
 
         String encodedRound1StateA = Musig2.encodeRound1State(round1StateA);
         round1StateA = Musig2.decodeRound1State(encodedRound1StateA);
@@ -36,9 +36,9 @@ public class MainActivity extends AppCompatActivity {
 
         String[] pubkeys = new String[]{pubkeyA, pubkeyB, pubkeyC};
 
-        String round2MsgA = Musig2.getRound2Msg(round1StateA, msg, pubkeyA, pubkeys, new String[]{round1MsgB, round1MsgC});
-        String round2MsgB = Musig2.getRound2Msg(round1StateB, msg, pubkeyB, pubkeys, new String[]{round1MsgA, round1MsgC});
-        String round2MsgC = Musig2.getRound2Msg(round1StateC, msg, pubkeyC, pubkeys, new String[]{round1MsgA, round1MsgB});
+        String round2MsgA = Musig2.getRound2Msg(round1StateA, msg, privateA, pubkeys, new String[]{round1MsgB, round1MsgC});
+        String round2MsgB = Musig2.getRound2Msg(round1StateB, msg, privateB, pubkeys, new String[]{round1MsgA, round1MsgC});
+        String round2MsgC = Musig2.getRound2Msg(round1StateC, msg, privateC, pubkeys, new String[]{round1MsgA, round1MsgB});
 
         String sig = Musig2.getAggSignature(new String[]{round2MsgA, round2MsgB, round2MsgC});
         String pubkey = Musig2.getAggPublicKey(pubkeys);

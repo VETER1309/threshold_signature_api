@@ -11,12 +11,14 @@ use schnorrkel::{
         aggregate_public_key_from_slice, collect_cosignatures, AggregatePublicKey, CosignStage,
         Cosignature, MuSig, Reveal, RevealStage,
     },
-    signing_context, Keypair, PublicKey, SecretKey,
+    signing_context, ExpansionMode, Keypair, MiniSecretKey, PublicKey, SecretKey,
 };
 
 mod error;
 
+use bip39::{Language, Mnemonic};
 use error::Error;
+use substrate_bip39::seed_from_entropy;
 
 #[no_mangle]
 pub extern "C" fn get_my_pubkey(privkey: *const c_char) -> *mut c_char {
@@ -498,17 +500,39 @@ pub fn r_get_my_mast(pubkeys: *const c_char, threshold: usize) -> Result<Mast, E
     Ok(Mast::new(pubkeys, threshold)?)
 }
 
+#[no_mangle]
+pub extern "C" fn get_my_privkey(phrase: *const c_char) -> *mut c_char {
+    match r_get_my_privkey(phrase) {
+        Ok(sec) => sec,
+        Err(_) => Error::InvalidPhrase.into(),
+    }
+}
+
+fn r_get_my_privkey(phrase: *const c_char) -> Result<*mut c_char, Error> {
+    let phrase = unsafe {
+        if phrase.is_null() {
+            return Err(Error::InvalidPhrase);
+        }
+        CStr::from_ptr(phrase)
+    };
+    let phrase = phrase.to_str()?;
+    let m = Mnemonic::from_phrase(phrase, Language::English).map_err(|_| Error::InvalidPhrase)?;
+    let seed = seed_from_entropy(m.entropy(), "").map_err(|_| Error::InvalidPhrase)?;
+    let mini_key = MiniSecretKey::from_bytes(&seed[..32]).map_err(|_| Error::InvalidPhrase)?;
+    let kp = mini_key.expand_to_keypair(ExpansionMode::Ed25519);
+    let secret_str = CString::new(hex::encode(&kp.secret.to_bytes()))?;
+    Ok(secret_str.into_raw())
+}
 #[cfg(test)]
 mod tests {
     use super::*;
     use schnorrkel::Signature;
 
-    const PRIVATE0: &str = "54fa29a5b57041e930b2b0b7939540c076cda3754c4dc2ddb184fe60fe1b7f0c76df013ca315ae0a51a2b9a3eadfaca4fc91a750667d8d8592b0154e381c6da2";
-    const PRIVATE1: &str = "db43ffe916f7aacef99a136ec04a504ab1b95a4023e1c2d2b36e98649bfcff0f45ceb6016fb7292732b940c1efe74d4fc20959a05869b79823ce01f06da84d38";
-    const PRIVATE2: &str = "330d9f80e441be557a899b6cda38f243f1c089c8dd985df86f74a8f92f6025076ce7f9ba2ab95e2d33a24c16e4fd27c9bb73374045e23598f81cc670b57b4b59";
-    const PUBLIC0: &str = "e283f9f07f5bae9a2ea1b4cfea313b3b5e29e0cac2dec126e788f0bf811ff82b";
-    const PUBLIC1: &str = "40c01b70fe175c6db4f01d3ef5b4f96b5bc31f33d22b0a9b84f3ab75fc7e6c72";
-    const PUBLIC2: &str = "dcb27a4ddd6f52216b294c8392d53b85099bbe9f7235914364334ee8f2ea707e";
+    const PHRASE0: &str = "flame flock chunk trim modify raise rough client coin busy income smile";
+    const PHRASE1: &str =
+        "shrug argue supply evolve alarm caught swamp tissue hollow apology youth ethics";
+    const PHRASE2: &str =
+        "awesome beef hill broccoli strike poem rebel unique turn circle cool system";
     const PUBLICA: &str = "005431ba274d567440f1da2fc4b8bc37e90d8155bf158966907b3f67a9e13b2d";
     const PUBLICB: &str = "90b0ae8d9be3dab2f61595eb357846e98c185483aff9fa211212a87ad18ae547";
     const PUBLICC: &str = "66768a820dd1e686f28167a572f5ea1acb8c3162cb33f0d4b2b6bee287742415";
@@ -525,9 +549,16 @@ mod tests {
 
     #[test]
     fn multi_signature_should_work() {
-        let secret_key_0 = CString::new(PRIVATE0).unwrap().into_raw();
-        let secret_key_1 = CString::new(PRIVATE1).unwrap().into_raw();
-        let secret_key_2 = CString::new(PRIVATE2).unwrap().into_raw();
+        let phrase_0 = CString::new(PHRASE0).unwrap().into_raw();
+        let phrase_1 = CString::new(PHRASE1).unwrap().into_raw();
+        let phrase_2 = CString::new(PHRASE2).unwrap().into_raw();
+        let secret_key_0 = get_my_privkey(phrase_0);
+        let secret_key_1 = get_my_privkey(phrase_1);
+        let secret_key_2 = get_my_privkey(phrase_2);
+        let pubkey_0 = convert_char_to_str(get_my_pubkey(secret_key_0));
+        let pubkey_1 = convert_char_to_str(get_my_pubkey(secret_key_1));
+        let pubkey_2 = convert_char_to_str(get_my_pubkey(secret_key_2));
+
         let musig_0 = get_musig(secret_key_0);
         // Reveal stage object serialization
         let musig_0 = encode_reveal_stage(musig_0);
@@ -535,7 +566,7 @@ mod tests {
         let musig_0 = decode_reveal_stage(musig_0);
         let musig_1 = get_musig(secret_key_1);
         let musig_2 = get_musig(secret_key_2);
-        let pubkeys = PUBLIC0.to_owned() + PUBLIC1 + PUBLIC2;
+        let pubkeys = pubkey_0 + &pubkey_1 + &pubkey_2;
         let pubkeys = CString::new(pubkeys.as_str()).unwrap().into_raw();
         let reveal_0 = convert_char_to_str(get_my_reveal(musig_0));
         let reveal_1 = convert_char_to_str(get_my_reveal(musig_1));

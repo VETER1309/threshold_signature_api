@@ -7,6 +7,7 @@ use hex::FromHexError;
 use mast::error::MastError;
 use schnorrkel::SignatureError;
 
+#[derive(Debug)]
 pub enum Error {
     NormalError,
     NullMusig,
@@ -20,6 +21,7 @@ pub enum Error {
     InvalidCosignBytes,
     IncorrectCosignNum,
     InvalidSignature,
+    InvalidPhrase,
 }
 
 impl From<Utf8Error> for Error {
@@ -100,6 +102,9 @@ impl From<Error> for *mut i8 {
             },
             Error::EncodeFail => unsafe {
                 CString::from_vec_unchecked(b"Encode Fail".to_vec()).into_raw()
+            },
+            Error::InvalidPhrase => unsafe {
+                CString::from_vec_unchecked(b"Invalid Phrase".to_vec()).into_raw()
             },
         }
     }

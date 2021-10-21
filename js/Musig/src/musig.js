@@ -3,6 +3,7 @@ const ffi = require('ffi-napi');
 const lib_path = __dirname + "/libmusig_dll"
 const lib = ffi.Library(lib_path, {
     get_my_pubkey: ['string', ['string']],
+    get_my_privkey: ['string', ['string']],
     get_musig: ['pointer', ['string']],
     get_my_reveal: ['string', ['pointer']],
     encode_reveal_stage: ['string', ['pointer']],
@@ -22,6 +23,11 @@ getMyMusig = function (priv) {
 getMyPubkey = function (priv) {
     return lib.get_my_pubkey(priv)
 }
+
+getMyPrivkey = function (phrase) {
+    return lib.get_my_privkey(phrase)
+}
+
 getMyReveal = function (musig) {
     return lib.get_my_reveal(musig)
 }
@@ -58,6 +64,7 @@ generateControlBlock = function (pubkeys, threshold, aggPubkey) {
 module.exports = {
     getMyMusig,
     getMyPubkey,
+    getMyPrivkey,
     getMyReveal,
     getMyCosign,
     encodeRevealStage,

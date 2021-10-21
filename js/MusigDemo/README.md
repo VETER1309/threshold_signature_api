@@ -7,7 +7,7 @@ This is the js version of musig and musig2 api. Mainly to facilitate the constru
 ~~~json
 {
   "dependencies": {
-    "musig": "1.5.1",
+    "musig": "1.6.0",
     "musig2": "1.2.0"
   }
 }
@@ -15,12 +15,23 @@ This is the js version of musig and musig2 api. Mainly to facilitate the constru
 
 # Api
 ### Musig
+
+**getMyPrivkey(phrase)**
+
+```
+Pass in the phrase to get the private key.
+Returns: <String>
+Return a 64-byte private key string.
+Possible error string returned is `Invalid Phrase`.
+```
+
 **getMusig(private)**
 ```
 Pass in the private key string to create the musig pointer for multi-signature.
 ```
 
 **getMyPubkey(private)**
+
 ```
 Pass in the private key to get the public key.
 Returns: <String>
@@ -29,6 +40,7 @@ Possible error string returned is `Invalid Secret Bytes`.
 ```
 
 **getMyReveal(musig)**
+
 ```
 Pass in the musig pointer.
 Returns: <String>
@@ -174,7 +186,13 @@ yarn install
 
 ### Musig
 
-- First pass in the private key to declare a musig pointer and get my pubkey
+- Pass in the phrase to generate private key
+
+~~~js
+const private0 = getMyPrivkey(phrase0)
+~~~
+
+- Pass in the private key to declare a musig pointer and get my pubkey
 
 ~~~javascript
 const musig0 = getMusig(private0)

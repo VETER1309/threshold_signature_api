@@ -1,6 +1,6 @@
 {
   "name": "musig",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "The js version of musig api",
   "main": "src/musig.js",
   "author": "",

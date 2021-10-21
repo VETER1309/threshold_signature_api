@@ -12,6 +12,8 @@
 
 #endif /* MusigHeader_h */
 
+const char *get_my_privkey(const char *phrase);
+
 const char *get_my_pubkey(const char *privkey);
 
 typedef struct Musig Musig;

@@ -5,8 +5,8 @@ edition = "2018"
 version = "0.1.0"
 
 [lib]
-# crate-type = ["lib", "staticlib"]
-crate-type = ["lib", "cdylib"]
+ crate-type = ["lib", "staticlib"]
+#crate-type = ["lib", "cdylib"]
 
 [dependencies]
 tiny-bip39 = { version = "0.8" }

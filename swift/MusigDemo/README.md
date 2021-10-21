@@ -6,7 +6,7 @@ This is an example of using musig as an aar package. Some help for building a th
 
 Import package
 
-`File>Add Packages>Github` search https://github.com/AAweidai/Musig, as shown in the figure below. The current version is **1.5.0**.
+`File>Add Packages>Github` search https://github.com/AAweidai/Musig, as shown in the figure below. The current version is **1.6.0**.
 
 ![](https://cdn.jsdelivr.net/gh/AAweidai/PictureBed@master/taproot/16329983286771632998328618.png)
 
@@ -17,6 +17,16 @@ import Musig
 
 # Api
 ### Musig
+
+**getMyPrivkey(phrase)**
+
+```
+Pass in the phrase to get the private key.
+Returns: <String>
+Return a 64-byte private key string.
+Possible error string returned is `Invalid Phrase`.
+```
+
 **getMusig(private)**
 ```java
 Pass in the private key string to create the musig pointer for multi-signature.
@@ -105,7 +115,13 @@ The specific usage can be viewed in [ViewController.swift](MusigDemo/ViewControl
 
 ## Musig
 
-- First pass in the private key to declare a musig pointer and get my pubkey
+- Pass in the phrase to generate private key
+
+~~~swift
+let private0 = getMyPrivkey(phrase: phrase0)
+~~~
+
+- Pass in the private key to declare a musig pointer and get my pubkey
 
 ~~~swift
 var musig0 = getMusig(priv: private0)

@@ -11,6 +11,10 @@ public func getMusig(priv: String) -> OpaquePointer?{
     return get_musig(priv)
 }
 
+public func getMyPrivkey(phrase: String) -> String{
+    return String.init(cString:get_my_privkey(phrase))
+}
+
 public func getMyPubkey(priv: String) -> String{
     return String.init(cString:get_my_pubkey(priv))
 }

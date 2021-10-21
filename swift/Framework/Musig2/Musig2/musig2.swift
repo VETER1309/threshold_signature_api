@@ -7,8 +7,8 @@
 
 import Foundation
 
-public func getRound1State(priv: String) -> OpaquePointer?{
-    return get_round1_state(priv)
+public func getRound1State() -> OpaquePointer?{
+    return get_round1_state()
 }
 
 public func getMyPubkey(priv: String) -> String{
@@ -27,8 +27,8 @@ public func decodeRound1State(round1_state:String) -> OpaquePointer?{
     return decode_round1_state(round1_state)
 }
 
-public func getRound2Msg(state:OpaquePointer?, msg:String, my_pubkey:String, pubkeys:[String], received_round1_msg:[String]) -> String{
-    return String.init(cString:get_round2_msg(state, msg, my_pubkey, pubkeys.joined(separator: ""), received_round1_msg.joined(separator: "")))
+public func getRound2Msg(state:OpaquePointer?, msg:String, priv:String, pubkeys:[String], received_round1_msg:[String]) -> String{
+    return String.init(cString:get_round2_msg(state, msg, priv, pubkeys.joined(separator: ""), received_round1_msg.joined(separator: "")))
 }
 
 public func getAggSignature(round2_msg:[String]) -> String{

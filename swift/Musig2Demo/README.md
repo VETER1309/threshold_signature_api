@@ -6,7 +6,7 @@ This is an example of using musig2 as an aar package. Some help for building a t
 
 Import package
 
-`File>Add Packages>Github` search https://github.com/AAweidai/Musig2, as shown in the figure below. The current version is **1.0.0**.
+`File>Add Packages>Github` search https://github.com/AAweidai/Musig2, as shown in the figure below. The current version is **1.1.0**.
 
 ![](https://cdn.jsdelivr.net/gh/AAweidai/PictureBed@master/taproot/16329983286771632998328618.png)
 
@@ -17,18 +17,20 @@ import Musig2
 
 # Api
 ### Musig2
-**getRound1State(private)**
+**getRound1State()**
 
 ```java
-Use privkey to calculate the State of the first round
-Returns: State Pointer If the calculation fails just a null pointer will be returned.
+Generate the State of the first round
+Returns: State Pointer 
+If the calculation fails just a null pointer will be returned.
 ```
 
 **getMyPubkey(private)**
 
 ```java
 Help to get the PublicKey from privkey
-Returns: pubkey string Possible errors are Null KeyPair Pointer and Normal Error.
+Returns: pubkey string 
+Possible errors are Null KeyPair Pointer and Normal Error.
 ```
 
 **getRound1Msg(state)**
@@ -55,10 +57,10 @@ Returns: State.
 Failure will return a null pointer.
 ```
 
-**getRound2Msg(state, msg, my_pubkey, pubkeys, received_round1_msg)**
+**getRound2Msg(state, msg, priv, pubkeys, received_round1_msg)**
 
 ```java
-It takes a lot of preparation to switch to round2 state(StatePrime). You need the round1 State, the message to sign for it, your own public key, everyone's public key, and everyone else's msgs from the round1.
+It takes a lot of preparation to switch to round2 state(StatePrime). You need the round1 State, the message to sign for it, your own private key, everyone's public key, and everyone else's msgs from the round1.
 Returns: StatePrime Pointer. 
 Failure will return a null pointer.
 ```
@@ -110,7 +112,7 @@ The specific usage can be viewed in [ViewController.swift](Musig2Demo/ViewContro
 - First pass in the private key to declare a State pointer and get my pubkey
 
 ~~~swift
-var round1_state0 = getRound1State(priv: private0)
+var round1_state0 = getRound1State()
 let pubkey0 = getMyPubkey(priv: private0)
 ~~~
 

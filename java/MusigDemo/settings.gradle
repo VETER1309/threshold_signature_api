@@ -1,3 +1,4 @@
 rootProject.name = "MusigDemo"
 include ':musigdemo'
 include ':musig2demo'
+include ':musig2sr25519demo'

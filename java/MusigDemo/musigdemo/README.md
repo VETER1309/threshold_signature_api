@@ -126,10 +126,16 @@ The specific usage can be viewed in [MainActivity.java](src/main/java/com/exampl
 
 ### Musig
 
-- First pass in the private key to declare a musig pointer and get my pubkey
+- Pass in the phrase to generate private key
 
 ~~~java
-String private1 = Musig.getMyPrivkey(phrase1);
+String privateA = Musig.getMyPrivkey(phrase1);
+~~~
+
+
+- Pass in the private key to declare a musig pointer and get my pubkey
+
+~~~java
 Pointer musig0 = Musig.getMusig(private1);
 String pubkey0 = Musig.getMyPubkey(private1);
 ~~~

@@ -9,9 +9,9 @@ import com.chainx.musig.Mast;
 import com.sun.jna.Pointer;
 
 public class MainActivity extends AppCompatActivity {
-    final static String phrase1 = "flame flock chunk trim modify raise rough client coin busy income smile"
-    final static String phrase2 = "shrug argue supply evolve alarm caught swamp tissue hollow apology youth ethics"
-    final static String phrase3 = "awesome beef hill broccoli strike poem rebel unique turn circle cool system"
+    final static String phrase1 = "flame flock chunk trim modify raise rough client coin busy income smile";
+    final static String phrase2 = "shrug argue supply evolve alarm caught swamp tissue hollow apology youth ethics";
+    final static String phrase3 = "awesome beef hill broccoli strike poem rebel unique turn circle cool system";
 
     final static String publicA = "005431ba274d567440f1da2fc4b8bc37e90d8155bf158966907b3f67a9e13b2d";
     final static String publicB = "90b0ae8d9be3dab2f61595eb357846e98c185483aff9fa211212a87ad18ae547";

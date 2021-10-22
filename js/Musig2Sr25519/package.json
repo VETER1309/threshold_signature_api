@@ -1,0 +1,11 @@
+{
+  "name": "musig2-sr25519",
+  "version": "1.0.0",
+  "description": "The js version of musig2 api",
+  "main": "src/musig2sr25519.js",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ffi-napi": "^4.0.3"
+  }
+}

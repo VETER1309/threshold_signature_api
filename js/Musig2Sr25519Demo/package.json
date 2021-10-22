@@ -1,0 +1,10 @@
+{
+  "name": "musig2-sr25519-demo",
+  "version": "1.0.0",
+  "description": "",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "musig2-sr25519": "1.0.0"
+  }
+}

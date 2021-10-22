@@ -50,17 +50,10 @@
   "resolved" "https://registry.npmjs.org/ms/-/ms-2.1.2.tgz"
   "version" "2.1.2"
 
-"musig@1.5.1":
-  "integrity" "sha512-IQuo17gXtoMryzxxkqjfoAQcdjyesOXjht7x0rayiNafsS9yR7w3qUYwiptSOjNLijYAo2dw/FSCGN0HIz2XWA=="
-  "resolved" "https://registry.npmjs.org/musig/-/musig-1.5.1.tgz"
-  "version" "1.5.1"
-  dependencies:
-    "ffi-napi" "^4.0.3"
-
-"musig2@1.2.0":
-  "integrity" "sha512-2dc4D9inx3893RWg05FHW8eWFGAxUdakv66+7yltwp0vfl8haUILFZ8YEIGeUnpEeQmdGYW1YztkYhfALHITEA=="
-  "resolved" "https://registry.npmjs.org/musig2/-/musig2-1.2.0.tgz"
-  "version" "1.2.0"
+"musig@1.6.0":
+  "integrity" "sha512-syCKwbuRKHhiHP2C8RkBKYuShegfsjSvGoAT91u6DV/TngDCZwjle5He1RuI4vE0veEEmUXsb9UxZP2UGmbv0Q=="
+  "resolved" "https://registry.npmjs.org/musig/-/musig-1.6.0.tgz"
+  "version" "1.6.0"
   dependencies:
     "ffi-napi" "^4.0.3"
 

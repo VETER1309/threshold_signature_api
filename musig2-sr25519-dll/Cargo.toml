@@ -1,0 +1,22 @@
+[package]
+name = "musig2-sr25519-dll"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# crate-type = ["lib", "staticlib"]
+crate-type = ["lib", "cdylib"]
+
+[dependencies]
+mast = { git = "https://github.com/chainx-org/mast", branch = "Musig2" }
+musig2 = { git = "https://github.com/chainx-org/Musig2", branch = "sr25519" }
+schnorrkel = { git = "https://github.com/chainx-org/schnorrkel", branch = "musig2" }
+merlin = { version = "3.0" }
+libc = { version = "0.2.0" }
+hex = { version = "0.4.0" }
+serde = { version = "1.0.123", default-features = false, optional = true }
+serde_json = { version = "1.0.68" }
+substrate-bip39 = { version = "0.4.2"}
+tiny-bip39 = { version = "0.8" }

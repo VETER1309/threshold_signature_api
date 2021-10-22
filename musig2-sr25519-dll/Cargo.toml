@@ -10,7 +10,7 @@ edition = "2018"
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-mast = { git = "https://github.com/chainx-org/mast", branch = "Musig2" }
+mast = { git = "https://github.com/chainx-org/mast", branch = "sr25519" }
 musig2 = { git = "https://github.com/chainx-org/Musig2", branch = "sr25519" }
 schnorrkel = { git = "https://github.com/chainx-org/schnorrkel", branch = "musig2" }
 merlin = { version = "3.0" }

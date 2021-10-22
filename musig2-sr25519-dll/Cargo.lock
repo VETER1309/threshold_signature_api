@@ -333,7 +333,7 @@ dependencies = [
 [[package]]
 name = "mast"
 version = "0.1.0"
-source = "git+https://github.com/chainx-org/mast?branch=sr25519#642446112061b7a720b16a0979b387a124d8a61a"
+source = "git+https://github.com/chainx-org/mast?branch=sr25519#b8c1b96373eea6e010c6a44bfffbb36af7753523"
 dependencies = [
  "arrayref",
  "bitcoin_hashes",
@@ -341,6 +341,7 @@ dependencies = [
  "curve25519-dalek-ng",
  "digest 0.9.0",
  "hex",
+ "musig2",
  "rand 0.8.4",
  "rand_core 0.6.3",
  "schnorrkel 0.10.1",
@@ -380,7 +381,7 @@ dependencies = [
 [[package]]
 name = "musig2"
 version = "0.1.0"
-source = "git+https://github.com/chainx-org/Musig2?branch=sr25519#b404b1f674d3e4e5907b56402af07f098571423a"
+source = "git+https://github.com/chainx-org/Musig2?branch=sr25519#462eb88d1f367a636deffc2584318e35e206ff5b"
 dependencies = [
  "arrayref",
  "curve25519-dalek-ng",
@@ -592,7 +593,7 @@ dependencies = [
 [[package]]
 name = "schnorrkel"
 version = "0.10.1"
-source = "git+https://github.com/chainx-org/schnorrkel?branch=musig2#21a3d072ceb9809305fbbb762ee09275ea962317"
+source = "git+https://github.com/chainx-org/schnorrkel?branch=musig2#4e394b27b4fda8d0694fb02c0be6f709260b34f3"
 dependencies = [
  "arrayref",
  "arrayvec",

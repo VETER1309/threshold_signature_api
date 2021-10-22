@@ -457,7 +457,6 @@ mod tests {
     const PUBLICA: &str = "005431ba274d567440f1da2fc4b8bc37e90d8155bf158966907b3f67a9e13b2d";
     const PUBLICB: &str = "90b0ae8d9be3dab2f61595eb357846e98c185483aff9fa211212a87ad18ae547";
     const PUBLICC: &str = "66768a820dd1e686f28167a572f5ea1acb8c3162cb33f0d4b2b6bee287742415";
-    const PUBLICAB: &str = "7c9a72882718402bf909b3c1693af60501c7243d79ecc8cf030fa253eb136861";
     const MESSAGE: &str = "b9b74d5852010cc4bf1010500ae6a97eca7868c9779d50c60fb4ae568b01ea38";
 
     fn convert_char_to_str(c: *mut c_char) -> String {
@@ -471,9 +470,6 @@ mod tests {
 
     #[test]
     fn test_multiparty_signing() {
-        let mut message = Transcript::new(b"SigningContext");
-        message.append_message(b"", b"multi-sig");
-
         let phrase_0 = CString::new(PHRASE0).unwrap().into_raw();
         let phrase_1 = CString::new(PHRASE1).unwrap().into_raw();
         let phrase_2 = CString::new(PHRASE2).unwrap().into_raw();
@@ -482,8 +478,6 @@ mod tests {
         let secret_key_2 = get_my_privkey(phrase_2);
 
         let msg = CString::new(MESSAGE).unwrap().into_raw();
-        let message_bytes = c_char_to_r_bytes(msg).unwrap();
-        message.append_message(b"sign-bytes", &message_bytes);
 
         let pubkey_a = get_my_pubkey(secret_key_0);
         let pubkey_b = get_my_pubkey(secret_key_1);
@@ -579,6 +573,10 @@ mod tests {
 
         println!("agg_pubkey: {}", hex::encode(&agg_pubkey.to_bytes()));
 
+        let mut message = Transcript::new(b"SigningContext");
+        message.append_message(b"", b"multi-sig");
+        let message_bytes = c_char_to_r_bytes(msg).unwrap();
+        message.append_message(b"sign-bytes", &message_bytes);
         assert!(agg_pubkey.verify(message, &signature).is_ok());
     }
 
@@ -589,7 +587,7 @@ mod tests {
 
         let multi_pubkey = convert_char_to_str(generate_threshold_pubkey(pubkeys, 2));
         assert_eq!(
-            "d637ab113200c61d0188b6039de9738baa65d3e4f0d9f463a7aef8038c964021",
+            "2623a598f40659352150c8fb5bdbd0baca6ae7d8e3cbefaad55b376e265d3c0e",
             multi_pubkey
         );
     }
@@ -598,9 +596,10 @@ mod tests {
     fn generate_control_block_should_work() {
         let pubkeys = PUBLICA.to_owned() + PUBLICB + PUBLICC;
         let pubkeys = CString::new(pubkeys.as_str()).unwrap().into_raw();
-
-        let ab_agg = CString::new(PUBLICAB).unwrap().into_raw();
+        let pubkeys_ab = PUBLICA.to_owned() + PUBLICB;
+        let pubkeys_ab = CString::new(pubkeys_ab.as_str()).unwrap().into_raw();
+        let ab_agg = get_key_agg(pubkeys_ab);
         let control = convert_char_to_str(generate_control_block(pubkeys, 2, ab_agg));
-        assert_eq!("881102cd9cf2ee389137a99a2ad88447b9e8b60c350cda71aff049233574c7680bac21362eecf9223bc477d6dfbbe02066a911eba752faedb26d881c466ea80fe17a23050f6f6db2f4218ce9f7c14edd21c5f24818157103c5a8524d7014c0dd", control);
+        assert_eq!("3870f07f65eb0f65e13cb53910966ea5fc7adad570d103a1e992b98e376c95420cddec2ff39d01b800a7b10550f553ffc02a749edb5fc43d9943818b3263c859", control);
     }
 }

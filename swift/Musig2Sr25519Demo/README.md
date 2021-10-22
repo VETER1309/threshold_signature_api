@@ -1,22 +1,31 @@
 # Overview
 
-This is an example of using musig2 api for btc. Some help for building a threshold signature wallet for ios.
+This is the js version of musig2 api for sr25519. Mainly to facilitate the construction of the ios version threshold signature wallet.
 
 # Dependencies
 
 Import package
 
-`File>Add Packages>Github` search https://github.com/AAweidai/Musig2, as shown in the figure below. The current version is **1.1.0**.
+`File>Add Packages>Github` search https://github.com/AAweidai/Musig2Sr25519, as shown in the figure below. The current version is **1.0.0**.
 
 ![](https://cdn.jsdelivr.net/gh/AAweidai/PictureBed@master/taproot/16329983286771632998328618.png)
 
 Step 2. Import
 ```
-import Musig2
+import Musig2Sr25519
 ```
 
 # Api
 ### Musig2
+**getMyPrivkey(phrase)**
+
+```
+Pass in the phrase to get the private key.
+Returns: <String>
+Return a 64-byte private key string.
+Possible error string returned is `Invalid Phrase`.
+```
+
 **getRound1State()**
 
 ```java
@@ -57,7 +66,7 @@ Returns: State.
 Failure will return a null pointer.
 ```
 
-**getRound2Msg(state, msg, priv, pubkeys, received_round1_msg)**
+**getRound2Msg(state, msg, privkey, pubkeys, received_round1_msg)**
 
 ```java
 It takes a lot of preparation to switch to round2 state(StatePrime). You need the round1 State, the message to sign for it, your own private key, everyone's public key, and everyone else's msgs from the round1.
@@ -103,13 +112,19 @@ Possible error string returned is `Invalid Public Bytes`.
 
 # Example
 
-The specific usage can be viewed in [ViewController.swift](Musig2Demo/ViewController.swift).This example simulates three people generating aggregated public keys and aggregated signatures firstly. Then including Mast address generation and control block generation.
+The specific usage can be viewed in [ViewController.swift](Musig2Sr25519Demo/ViewController.swift).This example simulates three people generating aggregated public keys and aggregated signatures firstly. Then including Mast address generation and control block generation.
 
 ## Details
 
-## Musig
+## Musig2
 
-- First pass in the private key to declare a State pointer and get my pubkey
+- Pass in the phrase to  and get my private key
+
+~~~
+let private0 = getMyPrivkey(phrase: phrase0)
+~~~
+
+- Declare a State pointer and pass in the private key to  and get my pubkey
 
 ~~~swift
 var round1_state0 = getRound1State()

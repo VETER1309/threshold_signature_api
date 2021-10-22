@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "Musig2Sr25519",
+        "repositoryURL": "https://github.com/AAweidai/Musig2Sr25519",
+        "state": {
+          "branch": null,
+          "revision": "65733117e7e513fe1ca871c1436474c81b7b5466",
+          "version": "1.0.0"
+        }
+      }
+    ]
+  },
+  "version": 1
+}

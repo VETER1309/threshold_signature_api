@@ -64,6 +64,12 @@ impl From<MastError> for Error {
     }
 }
 
+impl From<jni::errors::Error> for Error {
+    fn from(_: jni::errors::Error) -> Self {
+        Self::NormalError
+    }
+}
+
 impl From<Error> for *mut i8 {
     fn from(e: Error) -> Self {
         match e {

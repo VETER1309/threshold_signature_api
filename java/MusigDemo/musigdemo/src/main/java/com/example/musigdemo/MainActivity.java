@@ -6,7 +6,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.chainx.musig.Musig;
 import com.chainx.musig.Mast;
-import com.sun.jna.Pointer;
 
 public class MainActivity extends AppCompatActivity {
     final static String phrase1 = "flame flock chunk trim modify raise rough client coin busy income smile";
@@ -24,12 +23,12 @@ public class MainActivity extends AppCompatActivity {
         String private2 = Musig.getMyPrivkey(phrase2);
         String private3 = Musig.getMyPrivkey(phrase3);
 
-        Pointer musig0 = Musig.getMusig(private1);
+        long musig0 = Musig.getMusig(private1);
         String encodeMusig0 = Musig.encodeRevealStage(musig0);
         musig0 = Musig.decodeRevealStage(encodeMusig0);
 
-        Pointer musig1 = Musig.getMusig(private2);
-        Pointer musig2 = Musig.getMusig(private3);
+        long musig1 = Musig.getMusig(private2);
+        long musig2 = Musig.getMusig(private3);
 
         String pubkey0 = Musig.getMyPubkey(private1);
         String pubkey1 = Musig.getMyPubkey(private2);

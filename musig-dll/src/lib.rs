@@ -1,3 +1,8 @@
+use jni::{
+    objects::{JClass, JString},
+    sys::{jbyte, jlong, jstring},
+    JNIEnv,
+};
 use libc::c_char;
 use mast::Mast;
 use merlin::Transcript;
@@ -28,6 +33,27 @@ pub extern "C" fn get_my_pubkey(privkey: *const c_char) -> *mut c_char {
     }
 }
 
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig_Musig_get_1my_1pubkey(
+    env: JNIEnv,
+    _class: JClass,
+    privkey: JString,
+) -> jstring {
+    match j_get_my_pubkey(&env, privkey) {
+        Ok(j) => j,
+        Err(_) => env
+            .new_string("Invalid Secret Bytes")
+            .expect("Failed to create a Java string")
+            .into_inner(),
+    }
+}
+
+pub fn j_get_my_pubkey(env: &JNIEnv, privkey: JString) -> Result<jstring, Error> {
+    let c_priv = j_str_to_c_char(env, privkey)?;
+    let c_pubkey = r_get_my_pubkey(c_priv)?;
+    c_char_to_j_str(env, c_pubkey)
+}
+
 pub fn r_get_my_pubkey(privkey: *const c_char) -> Result<*mut c_char, Error> {
     let c_priv = unsafe {
         if privkey.is_null() {
@@ -54,6 +80,24 @@ pub extern "C" fn get_musig(
         Ok(musig) => musig,
         Err(_) => null_mut(),
     }
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig_Musig_get_1musig(
+    env: JNIEnv,
+    _class: JClass,
+    privkey: JString,
+) -> jlong {
+    match j_get_musig(&env, privkey) {
+        Ok(j) => j as jlong,
+        Err(_) => -1 as jlong,
+    }
+}
+
+fn j_get_musig(env: &JNIEnv, privkey: JString) -> Result<jlong, Error> {
+    let c_priv = j_str_to_c_char(env, privkey)?;
+    let c_pubkey = r_get_musig(c_priv)?;
+    Ok(c_pubkey as jlong)
 }
 
 pub fn r_get_musig(
@@ -86,6 +130,26 @@ pub extern "C" fn encode_reveal_stage(
     }
 }
 
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig_Musig_encode_1reveal_1stage(
+    env: JNIEnv,
+    _class: JClass,
+    musig: jlong,
+) -> jstring {
+    match j_encode_reveal_stage(&env, musig) {
+        Ok(j) => j,
+        Err(_) => env
+            .new_string("Invalid Musig Reveal State")
+            .expect("Failed to create a Java string")
+            .into_inner(),
+    }
+}
+
+fn j_encode_reveal_stage(env: &JNIEnv, musig: jlong) -> Result<jstring, Error> {
+    let c_str = r_encode_reveal_stage(musig as *mut MuSig<Transcript, RevealStage<Keypair>>)?;
+    c_char_to_j_str(env, c_str)
+}
+
 pub fn r_encode_reveal_stage(
     musig: *mut MuSig<Transcript, RevealStage<Keypair>>,
 ) -> Result<*mut c_char, Error> {
@@ -109,6 +173,24 @@ pub extern "C" fn decode_reveal_stage(
         Ok(s) => s,
         Err(_) => null_mut(),
     }
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig_Musig_decode_1reveal_1stage(
+    env: JNIEnv,
+    _class: JClass,
+    reveal_stage: JString,
+) -> jlong {
+    match j_decode_reveal_stage(&env, reveal_stage) {
+        Ok(j) => j as jlong,
+        Err(_) => -1 as jlong,
+    }
+}
+
+fn j_decode_reveal_stage(env: &JNIEnv, reveal_stage: JString) -> Result<jlong, Error> {
+    let c_str = j_str_to_c_char(env, reveal_stage)?;
+    let musig = r_decode_reveal_stage(c_str)?;
+    Ok(musig as jlong)
 }
 
 pub fn r_decode_reveal_stage(
@@ -149,6 +231,26 @@ pub extern "C" fn get_my_reveal(
 }
 
 #[no_mangle]
+pub extern "system" fn Java_com_chainx_musig_Musig_get_1my_1reveal(
+    env: JNIEnv,
+    _class: JClass,
+    musig: jlong,
+) -> jstring {
+    match j_get_my_reveal(&env, musig) {
+        Ok(j) => j,
+        Err(_) => env
+            .new_string("Invalid Phrase")
+            .expect("Failed to create a Java string")
+            .into_inner(),
+    }
+}
+
+fn j_get_my_reveal(env: &JNIEnv, musig: jlong) -> Result<jstring, Error> {
+    let c_str = get_my_reveal(musig as *mut MuSig<Transcript, RevealStage<Keypair>>);
+    c_char_to_j_str(env, c_str)
+}
+
+#[no_mangle]
 pub extern "C" fn cosign_stage(
     musig: *mut MuSig<Transcript, RevealStage<Keypair>>,
     reveals: *const c_char,
@@ -158,6 +260,36 @@ pub extern "C" fn cosign_stage(
         Ok(musig) => musig,
         Err(_) => null_mut(),
     }
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig_Musig_cosign_1stage(
+    env: JNIEnv,
+    _class: JClass,
+    musig: jlong,
+    reveals: JString,
+    pubkeys: JString,
+) -> jlong {
+    match j_cosign_stage(&env, musig, reveals, pubkeys) {
+        Ok(j) => j as jlong,
+        Err(_) => -1 as jlong,
+    }
+}
+
+fn j_cosign_stage(
+    env: &JNIEnv,
+    musig: jlong,
+    reveals: JString,
+    pubkeys: JString,
+) -> Result<jlong, Error> {
+    let reveals = j_str_to_c_char(env, reveals)?;
+    let pubkeys = j_str_to_c_char(env, pubkeys)?;
+    let musig = r_cosign_stage(
+        musig as *mut MuSig<Transcript, RevealStage<Keypair>>,
+        reveals,
+        pubkeys,
+    )?;
+    Ok(musig as jlong)
 }
 
 pub fn r_cosign_stage(
@@ -228,6 +360,26 @@ pub extern "C" fn encode_cosign_stage(musig: *mut MuSig<Transcript, CosignStage>
     }
 }
 
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig_Musig_encode_1cosign_1stage(
+    env: JNIEnv,
+    _class: JClass,
+    musig: jlong,
+) -> jstring {
+    match j_encode_cosign_stage(&env, musig) {
+        Ok(j) => j,
+        Err(_) => env
+            .new_string("Invalid Musig Cosign Stage")
+            .expect("Failed to create a Java string")
+            .into_inner(),
+    }
+}
+
+fn j_encode_cosign_stage(env: &JNIEnv, musig: jlong) -> Result<jstring, Error> {
+    let c_str = r_encode_cosign_stage(musig as *mut MuSig<Transcript, CosignStage>)?;
+    c_char_to_j_str(env, c_str)
+}
+
 pub fn r_encode_cosign_stage(
     musig: *mut MuSig<Transcript, CosignStage>,
 ) -> Result<*mut c_char, Error> {
@@ -251,6 +403,24 @@ pub extern "C" fn decode_cosign_stage(
         Ok(s) => s,
         Err(_) => null_mut(),
     }
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig_Musig_decode_1cosign_1stage(
+    env: JNIEnv,
+    _class: JClass,
+    reveal_stage: JString,
+) -> jlong {
+    match j_decode_cosign_stage(&env, reveal_stage) {
+        Ok(j) => j as jlong,
+        Err(_) => jlong::default(),
+    }
+}
+
+fn j_decode_cosign_stage(env: &JNIEnv, reveal_stage: JString) -> Result<jlong, Error> {
+    let c_str = j_str_to_c_char(env, reveal_stage)?;
+    let musig = r_decode_cosign_stage(c_str)?;
+    Ok(musig as jlong)
 }
 
 pub fn r_decode_cosign_stage(
@@ -288,6 +458,26 @@ pub extern "C" fn get_my_cosign(musig: *mut MuSig<Transcript, CosignStage>) -> *
 }
 
 #[no_mangle]
+pub extern "system" fn Java_com_chainx_musig_Musig_get_1my_1cosign(
+    env: JNIEnv,
+    _class: JClass,
+    musig: jlong,
+) -> jstring {
+    match j_get_my_cosign(&env, musig) {
+        Ok(j) => j,
+        Err(_) => env
+            .new_string("Invalid Musig Cosign Stage")
+            .expect("Failed to create a Java string")
+            .into_inner(),
+    }
+}
+
+fn j_get_my_cosign(env: &JNIEnv, musig: jlong) -> Result<jstring, Error> {
+    let c_str = get_my_cosign(musig as *mut MuSig<Transcript, CosignStage>);
+    c_char_to_j_str(env, c_str)
+}
+
+#[no_mangle]
 pub extern "C" fn get_signature(
     reveals: *const c_char,
     pubkeys: *const c_char,
@@ -297,6 +487,37 @@ pub extern "C" fn get_signature(
         Ok(sig) => sig,
         Err(_) => Error::InvalidSignature.into(),
     }
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig_Musig_get_1signature(
+    env: JNIEnv,
+    _class: JClass,
+    reveals: JString,
+    pubkeys: JString,
+    cosign: JString,
+) -> jstring {
+    match j_get_signature(&env, reveals, pubkeys, cosign) {
+        Ok(j) => j,
+        Err(_) => env
+            .new_string("Invalid Signature")
+            .expect("Failed to create a Java string")
+            .into_inner(),
+    }
+}
+
+fn j_get_signature(
+    env: &JNIEnv,
+    reveals: JString,
+    pubkeys: JString,
+    cosign: JString,
+) -> Result<jstring, Error> {
+    let reveals = j_str_to_c_char(env, reveals)?;
+    let pubkeys = j_str_to_c_char(env, pubkeys)?;
+    let cosign = j_str_to_c_char(env, cosign)?;
+
+    let c_str = r_get_signature(reveals, pubkeys, cosign)?;
+    c_char_to_j_str(env, c_str)
 }
 
 pub fn r_get_signature(
@@ -387,6 +608,27 @@ pub extern "C" fn get_agg_pubkey(pubkeys: *const c_char) -> *mut c_char {
     }
 }
 
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig_Musig_get_1agg_1pubkey(
+    env: JNIEnv,
+    _class: JClass,
+    pubkeys: JString,
+) -> jstring {
+    match j_get_agg_pubkey(&env, pubkeys) {
+        Ok(j) => j,
+        Err(_) => env
+            .new_string("Invalid Public Bytes")
+            .expect("Failed to create a Java string")
+            .into_inner(),
+    }
+}
+
+fn j_get_agg_pubkey(env: &JNIEnv, pubkeys: JString) -> Result<jstring, Error> {
+    let pubkeys = j_str_to_c_char(env, pubkeys)?;
+    let c_pubkey = r_get_agg_pubkey(pubkeys)?;
+    c_char_to_j_str(env, c_pubkey)
+}
+
 pub fn r_get_agg_pubkey(pubkeys: *const c_char) -> Result<*mut c_char, Error> {
     // construct the public key of all people
     let c_pubkeys = unsafe {
@@ -428,6 +670,33 @@ pub extern "C" fn generate_threshold_pubkey(pubkeys: *const c_char, threshold: u
     }
 }
 
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig_Mast_generate_1threshold_1pubkey(
+    env: JNIEnv,
+    _class: JClass,
+    pubkeys: JString,
+    threshold: jbyte,
+) -> jstring {
+    match j_generate_tweak_pubkey(&env, pubkeys, threshold) {
+        Ok(j) => j,
+        Err(_) => env
+            .new_string("Invalid Public Bytes")
+            .expect("Failed to create a Java string")
+            .into_inner(),
+    }
+}
+
+fn j_generate_tweak_pubkey(
+    env: &JNIEnv,
+    pubkeys: JString,
+    threshold: jbyte,
+) -> Result<jstring, Error> {
+    let pubkeys = j_str_to_c_char(env, pubkeys)?;
+    let threshold = threshold as usize;
+    let c_str = r_generate_tweak_pubkey(pubkeys, threshold)?;
+    c_char_to_j_str(env, c_str)
+}
+
 pub fn r_generate_tweak_pubkey(
     pubkeys: *const c_char,
     threshold: usize,
@@ -449,6 +718,36 @@ pub extern "C" fn generate_control_block(
         Ok(pubkey) => pubkey,
         Err(_) => Error::InvalidPublicBytes.into(),
     }
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig_Mast_generate_1control_1block(
+    env: JNIEnv,
+    _class: JClass,
+    pubkeys: JString,
+    threshold: jbyte,
+    agg_pubkey: JString,
+) -> jstring {
+    match j_generate_control_block(&env, pubkeys, threshold, agg_pubkey) {
+        Ok(j) => j,
+        Err(_) => env
+            .new_string("Invalid Public Bytes")
+            .expect("Failed to create a Java string")
+            .into_inner(),
+    }
+}
+
+fn j_generate_control_block(
+    env: &JNIEnv,
+    pubkeys: JString,
+    threshold: jbyte,
+    agg_pubkey: JString,
+) -> Result<jstring, Error> {
+    let pubkeys = j_str_to_c_char(env, pubkeys)?;
+    let agg_pubkey = j_str_to_c_char(env, agg_pubkey)?;
+    let threshold = threshold as usize;
+    let c_str = r_generate_control_block(pubkeys, threshold, agg_pubkey)?;
+    c_char_to_j_str(env, c_str)
 }
 
 pub fn r_generate_control_block(
@@ -508,6 +807,27 @@ pub extern "C" fn get_my_privkey(phrase: *const c_char) -> *mut c_char {
     }
 }
 
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig_Musig_get_1my_1privkey(
+    env: JNIEnv,
+    _class: JClass,
+    phrase: JString,
+) -> jstring {
+    match j_get_my_privkey(&env, phrase) {
+        Ok(j) => j,
+        Err(_) => env
+            .new_string("Invalid Phrase")
+            .expect("Failed to create a Java string")
+            .into_inner(),
+    }
+}
+
+fn j_get_my_privkey(env: &JNIEnv, phrase: JString) -> Result<jstring, Error> {
+    let c_priv = j_str_to_c_char(env, phrase)?;
+    let c_pubkey = r_get_my_privkey(c_priv)?;
+    c_char_to_j_str(env, c_pubkey)
+}
+
 fn r_get_my_privkey(phrase: *const c_char) -> Result<*mut c_char, Error> {
     let phrase = unsafe {
         if phrase.is_null() {
@@ -523,6 +843,31 @@ fn r_get_my_privkey(phrase: *const c_char) -> Result<*mut c_char, Error> {
     let secret_str = CString::new(hex::encode(&kp.secret.to_bytes()))?;
     Ok(secret_str.into_raw())
 }
+
+/// Help function
+///
+/// convert [`JString`] to [`c_char`]
+pub fn j_str_to_c_char(env: &JNIEnv, j_str: JString) -> Result<*const c_char, Error> {
+    let r_priv: String = env.get_string(j_str)?.into();
+    let c_priv = CString::new(r_priv)?;
+    Ok(c_priv.into_raw())
+}
+
+/// Help function
+///
+/// convert [`c_char`] to [`jstring`]
+pub fn c_char_to_j_str(env: &JNIEnv, c_str: *mut i8) -> Result<jstring, Error> {
+    let c_char = unsafe {
+        if c_str.is_null() {
+            return Err(Error::NormalError);
+        }
+
+        CStr::from_ptr(c_str)
+    };
+    let r_str = c_char.to_str()?;
+    Ok(env.new_string(r_str)?.into_inner())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

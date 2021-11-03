@@ -18,7 +18,7 @@ allprojects {
 Step 2. Add the dependency
 ```
 dependencies {
-	        implementation 'com.github.hacpy:musig:1.2.5'
+	        implementation 'com.github.hacpy:musig:1.5.0'
 	}
 ```
 
@@ -136,7 +136,7 @@ String privateA = Musig.getMyPrivkey(phrase1);
 - Pass in the private key to declare a musig pointer and get my pubkey
 
 ~~~java
-Pointer musig0 = Musig.getMusig(private1);
+long musig0 = Musig.getMusig(private1);
 String pubkey0 = Musig.getMyPubkey(private1);
 ~~~
 
@@ -155,7 +155,7 @@ String musig0_reveal_stage = encodeRevealStage(musig0);
 - Reveal stage object deserialization
 
 ~~~java
-Pointer musig0 = Musig.decodeRevealStage(musig0_reveal_stage);
+long musig0 = Musig.decodeRevealStage(musig0_reveal_stage);
 ~~~
 
 - Pass the self-generated pubkey and reveal to the other two parties, and the other two parties do the same. In the end, I got the public key and reveal of the other two parties. Pass in the `getMyCosign` function to generate my own cosign. **Note that when passing parameters here, pubkey and reveal must correspond one to one**.

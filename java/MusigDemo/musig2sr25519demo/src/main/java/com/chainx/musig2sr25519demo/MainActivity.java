@@ -6,7 +6,6 @@ import android.os.Bundle;
 
 import com.chainx.musig2_sr25519.Mast;
 import com.chainx.musig2_sr25519.Musig2;
-import com.sun.jna.Pointer;
 
 public class MainActivity extends AppCompatActivity {
     final static String phrase1 = "flame flock chunk trim modify raise rough client coin busy income smile";
@@ -25,9 +24,9 @@ public class MainActivity extends AppCompatActivity {
         String pubkeyB = Musig2.getMyPubkey(privateB);
         String pubkeyC = Musig2.getMyPubkey(privateC);
 
-        Pointer round1StateA = Musig2.getRound1State();
-        Pointer round1StateB = Musig2.getRound1State();
-        Pointer round1StateC = Musig2.getRound1State();
+        long round1StateA = Musig2.getRound1State();
+        long round1StateB = Musig2.getRound1State();
+        long round1StateC = Musig2.getRound1State();
 
         String encodedRound1StateA = Musig2.encodeRound1State(round1StateA);
         round1StateA = Musig2.decodeRound1State(encodedRound1StateA);

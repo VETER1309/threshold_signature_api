@@ -18,7 +18,7 @@ allprojects {
 Step 2. Add the dependency
 ```
 dependencies {
-	        implementation 'com.github.hacpy:musig2:1.2.0'
+	        implementation 'com.github.hacpy:musig2:1.3.2'
 	}
 ```
 
@@ -123,7 +123,7 @@ The specific usage can be viewed in [MainActivity.java](src/main/java/com/chainx
 - First pass in the private key to declare a State pointer and get my pubkey
 
 ~~~java
-Pointer round1StateA = Musig2.getRound1State();
+long round1StateA = Musig2.getRound1State();
 String pubkeyA = Musig2.getMyPubkey(privateA);
 ~~~
 

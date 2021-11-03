@@ -18,7 +18,7 @@ allprojects {
 Step 2. Add the dependency
 ```
 dependencies {
-	        implementation 'com.github.hacpy:musig2-sr25519:1.0.0'
+	        implementation 'com.github.hacpy:musig2-sr25519:1.1.0'
 	}
 ```
 
@@ -137,7 +137,7 @@ String privateA = Musig2.getMyPrivkey(phrase1);
 - Pass in the private key to declare a State pointer and get my pubkey
 
 ~~~java
-Pointer round1StateA = Musig2.getRound1State();
+long round1StateA = Musig2.getRound1State();
 String pubkeyA = Musig2.getMyPubkey(privateA);
 ~~~
 

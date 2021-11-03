@@ -33,7 +33,7 @@ fn convert_string_to_jstring(env: JNIEnv, s: String) -> jstring {
 /// Returns: pubkey string
 /// Possible errors are `Null KeyPair Pointer` and `Normal Error`.
 #[no_mangle]
-pub extern "system" fn Java_Musig2_get_1my_1pubkey(
+pub extern "system" fn Java_com_chainx_musig2_Musig2_get_1my_1pubkey(
     env: JNIEnv,
     _class: JClass,
     privkey: JString,
@@ -60,7 +60,7 @@ pub fn r_get_my_pubkey(env: JNIEnv, privkey: JString) -> Result<jstring, Error> 
 /// Returns: pubkey String.
 /// Possible error is `Normal Error`.
 #[no_mangle]
-pub extern "system" fn Java_Musig2_get_1key_1agg(
+pub extern "system" fn Java_com_chainx_musig2_Musig2_get_1key_1agg(
     env: JNIEnv,
     _class: JClass,
     pubkeys: JString,
@@ -97,7 +97,7 @@ pub fn r_get_key_agg(env: JNIEnv, pubkeys: JString) -> Result<jstring, Error> {
 /// Returns: [`State`] Pointer.
 /// If the calculation fails just a null pointer will be returned.
 #[no_mangle]
-pub extern "system" fn Java_Musig2_get_1round1_1state(_env: JNIEnv, _class: JClass) -> jlong {
+pub extern "system" fn Java_com_chainx_musig2_Musig2_get_1round1_1state(_env: JNIEnv, _class: JClass) -> jlong {
     match r_get_round1_state() {
         Ok(s) => s,
         Err(_) => jlong::default(),
@@ -114,7 +114,7 @@ pub fn r_get_round1_state() -> Result<jlong, Error> {
 /// Returns: state String.
 /// Possible error is `Null Round1 State Pointer` or `Encode Fail`.
 #[no_mangle]
-pub extern "system" fn Java_Musig2_encode_1round1_1state(
+pub extern "system" fn Java_com_chainx_musig2_Musig2_encode_1round1_1state(
     env: JNIEnv,
     _class: JClass,
     state: jlong,
@@ -143,7 +143,7 @@ pub fn r_encode_round1_state(env: JNIEnv, state: jlong) -> Result<jstring, Error
 /// Returns: [`State`].
 /// Failure will return a null pointer.
 #[no_mangle]
-pub extern "system" fn Java_Musig2_decode_1round1_1state(
+pub extern "system" fn Java_com_chainx_musig2_Musig2_decode_1round1_1state(
     env: JNIEnv,
     _class: JClass,
     round1_state: JString,
@@ -171,7 +171,7 @@ pub fn r_decode_round1_state(env: JNIEnv, round1_state: JString) -> Result<jlong
 /// Returns: msg String.
 /// Possible errors are `Normal Error` and `Null Round1 State Pointer`.
 #[no_mangle]
-pub extern "system" fn Java_Musig2_get_1round1_1msg(
+pub extern "system" fn Java_com_chainx_musig2_Musig2_get_1round1_1msg(
     env: JNIEnv,
     _class: JClass,
     state: jlong,
@@ -208,7 +208,7 @@ pub fn r_get_round1_msg(env: JNIEnv, state: jlong) -> Result<jstring, Error> {
 /// Returns: [`StatePrime`] Pointer.
 /// Failure will return a null pointer.
 #[no_mangle]
-pub extern "system" fn Java_Musig2_get_1round2_1msg(
+pub extern "system" fn Java_com_chainx_musig2_Musig2_get_1round2_1msg(
     env: JNIEnv,
     _class: JClass,
     round1_state: jlong,
@@ -318,7 +318,7 @@ pub fn round2_state_parse(
 /// Returns: signature String.
 /// Possible errors are `Normal Error` and `Null Round2 State Pointer`.
 #[no_mangle]
-pub extern "system" fn Java_Musig2_get_1signature(
+pub extern "system" fn Java_com_chainx_musig2_Musig2_get_1signature(
     env: JNIEnv,
     _class: JClass,
     receievd_round2_msg: JString,
@@ -374,7 +374,7 @@ pub fn c_char_to_r_bytes(env: JNIEnv, input: JString) -> Result<Vec<u8>, Error> 
 /// Returns: String. Return the public key of the threshold-signature address.
 /// Possible error string returned is `Invalid Public Bytes`.
 #[no_mangle]
-pub extern "system" fn Java_Musig2_generate_1threshold_1pubkey(
+pub extern "system" fn Java_com_chainx_musig2_Mast_generate_1threshold_1pubkey(
     env: JNIEnv,
     _class: JClass,
     pubkeys: JString,
@@ -408,7 +408,7 @@ pub fn r_generate_tweak_pubkey(
 /// Return signed proofs for transaction validation.
 /// Possible error string returned is `Invalid Public Bytes`.
 #[no_mangle]
-pub extern "system" fn Java_Musig2_generate_1control_1block(
+pub extern "system" fn Java_com_chainx_musig2_Mast_generate_1control_1block(
     env: JNIEnv,
     _class: JClass,
     pubkeys: JString,

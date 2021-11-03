@@ -26,3 +26,7 @@ build/
 .gradle/
 
 local.properties
+
+*.class
+
+.vscode/

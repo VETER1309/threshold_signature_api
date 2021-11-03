@@ -11,9 +11,9 @@ version = "0.1.0"
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
+jni = "0.19.0"
 mast = { git = "https://github.com/chainx-org/mast", branch = "Musig2" }
 musig2 = { git = "https://github.com/chainx-org/Musig2", branch = "lib" }
-libc = { version = "0.2.0" }
 hex = "0.4.3"
 serde = { version = "1.0.123", default-features = false, optional = true }
 serde_json = "1.0.68"

@@ -1,12 +1,20 @@
 mod error;
 
-use std::{
-    ffi::{CStr, CString},
-    ptr::null_mut,
-};
+// This is the interface to the JVM that we'll
+// call the majority of our methods on.
+use jni::JNIEnv;
+
+// These objects are what you should use as arguments to your native function.
+// They carry extra lifetime information to prevent them escaping this context
+// and getting used after being GC'd.
+use jni::objects::{JClass, JString};
+
+// This is just a pointer. We'll be returning it from our function.
+// We can't return one of the objects with lifetime information because the
+// lifetime checker won't let us.
+use jni::sys::{jint, jlong, jstring};
 
 use self::error::Error;
-use libc::c_char;
 use mast::Mast;
 use musig2::{sign_double_prime, KeyAgg, KeyPair, Nv, PrivateKey, PublicKey, State, StatePrime};
 
@@ -14,27 +22,37 @@ const PUBLICKEY_NORMAL_SIZE: usize = 65;
 const ROUND1_MSG_SIZE: usize = Nv * PUBLICKEY_NORMAL_SIZE;
 const STATE_PRIME_SIZE: usize = 97;
 
+fn convert_string_to_jstring(env: JNIEnv, s: String) -> jstring {
+    env.new_string(s)
+        .expect("Couldn't create java string!")
+        .into_inner()
+}
+
 /// Help to get the [`PublicKey`] from privkey
 ///
 /// Returns: pubkey string
 /// Possible errors are `Null KeyPair Pointer` and `Normal Error`.
 #[no_mangle]
-pub extern "C" fn get_my_pubkey(privkey: *const c_char) -> *mut c_char {
-    match r_get_my_pubkey(privkey) {
+pub extern "system" fn Java_Musig2_get_1my_1pubkey(
+    env: JNIEnv,
+    _class: JClass,
+    privkey: JString,
+) -> jstring {
+    match r_get_my_pubkey(env, privkey) {
         Ok(pri) => pri,
-        Err(e) => e.into(),
+        Err(e) => convert_string_to_jstring(env, e.into()),
     }
 }
 
-pub fn r_get_my_pubkey(privkey: *const c_char) -> Result<*mut c_char, Error> {
-    let secret_bytes = c_char_to_r_bytes(privkey)?;
+pub fn r_get_my_pubkey(env: JNIEnv, privkey: JString) -> Result<jstring, Error> {
+    let secret_bytes = c_char_to_r_bytes(env, privkey)?;
     if secret_bytes.len() != 32 {
         return Err(Error::NormalError);
     }
     let mut bytes = [0u8; 32];
     bytes.copy_from_slice(&secret_bytes[..]);
     let pubkey = PublicKey::create_from_private_key(&PrivateKey::parse(&bytes)?);
-    bytes_to_c_char(pubkey.serialize().to_vec())
+    Ok(bytes_to_c_char(env, pubkey.serialize().to_vec()))
 }
 
 /// Pass in the public key to generate the aggregated public key
@@ -42,15 +60,19 @@ pub fn r_get_my_pubkey(privkey: *const c_char) -> Result<*mut c_char, Error> {
 /// Returns: pubkey String.
 /// Possible error is `Normal Error`.
 #[no_mangle]
-pub extern "C" fn get_key_agg(pubkeys: *const c_char) -> *mut c_char {
-    match r_get_key_agg(pubkeys) {
+pub extern "system" fn Java_Musig2_get_1key_1agg(
+    env: JNIEnv,
+    _class: JClass,
+    pubkeys: JString,
+) -> jstring {
+    match r_get_key_agg(env, pubkeys) {
         Ok(keypair) => keypair,
-        Err(_) => Error::NormalError.into(),
+        Err(_) => convert_string_to_jstring(env, Error::NormalError.into()),
     }
 }
 
-pub fn r_get_key_agg(pubkeys: *const c_char) -> Result<*mut c_char, Error> {
-    let pubkeys_bytes = c_char_to_r_bytes(pubkeys)?;
+pub fn r_get_key_agg(env: JNIEnv, pubkeys: JString) -> Result<jstring, Error> {
+    let pubkeys_bytes = c_char_to_r_bytes(env, pubkeys)?;
     let mut pubkeys = Vec::new();
 
     if pubkeys_bytes.len() % 65 != 0 {
@@ -67,7 +89,7 @@ pub fn r_get_key_agg(pubkeys: *const c_char) -> Result<*mut c_char, Error> {
     let key_agg = KeyAgg::key_aggregation_n(&pubkeys)?;
     let mut key_agg_bytes = [0u8; PUBLICKEY_NORMAL_SIZE];
     key_agg_bytes[..65].copy_from_slice(&key_agg.X_tilde.serialize());
-    Ok(bytes_to_c_char(key_agg_bytes.to_vec())?)
+    Ok(bytes_to_c_char(env, key_agg_bytes.to_vec()))
 }
 
 /// Generate the [`State`] of the first round
@@ -75,16 +97,16 @@ pub fn r_get_key_agg(pubkeys: *const c_char) -> Result<*mut c_char, Error> {
 /// Returns: [`State`] Pointer.
 /// If the calculation fails just a null pointer will be returned.
 #[no_mangle]
-pub extern "C" fn get_round1_state() -> *mut State {
+pub extern "system" fn Java_Musig2_get_1round1_1state(_env: JNIEnv, _class: JClass) -> jlong {
     match r_get_round1_state() {
         Ok(s) => s,
-        Err(_) => null_mut(),
+        Err(_) => jlong::default(),
     }
 }
 
-pub fn r_get_round1_state() -> Result<*mut State, Error> {
+pub fn r_get_round1_state() -> Result<jlong, Error> {
     let state = musig2::sign()?;
-    Ok(Box::into_raw(Box::new(state)))
+    Ok(Box::into_raw(Box::new(state)) as jlong)
 }
 
 /// encode [`State`] object.
@@ -92,22 +114,26 @@ pub fn r_get_round1_state() -> Result<*mut State, Error> {
 /// Returns: state String.
 /// Possible error is `Null Round1 State Pointer` or `Encode Fail`.
 #[no_mangle]
-pub extern "C" fn encode_round1_state(state: *mut State) -> *mut c_char {
-    match r_encode_round1_state(state) {
+pub extern "system" fn Java_Musig2_encode_1round1_1state(
+    env: JNIEnv,
+    _class: JClass,
+    state: jlong,
+) -> jstring {
+    match r_encode_round1_state(env, state) {
         Ok(s) => s,
-        Err(e) => e.into(),
+        Err(e) => convert_string_to_jstring(env, e.into()),
     }
 }
 
-pub fn r_encode_round1_state(state: *mut State) -> Result<*mut c_char, Error> {
+pub fn r_encode_round1_state(env: JNIEnv, state: jlong) -> Result<jstring, Error> {
     let state = unsafe {
-        if state.is_null() {
-            return Err(Error::NullRound1State);
-        }
-        &mut *state
+        // if state.is_null() {
+        //     return Err(Error::NullRound1State);
+        // }
+        &mut *(state as *mut State)
     };
     match serde_json::to_string(state) {
-        Ok(s) => Ok(CString::new(s).map_err(|_| Error::EncodeFail)?.into_raw()),
+        Ok(s) => Ok(convert_string_to_jstring(env, s)),
         Err(_) => Err(Error::EncodeFail),
     }
 }
@@ -117,24 +143,25 @@ pub fn r_encode_round1_state(state: *mut State) -> Result<*mut c_char, Error> {
 /// Returns: [`State`].
 /// Failure will return a null pointer.
 #[no_mangle]
-pub extern "C" fn decode_round1_state(round1_state: *const c_char) -> *mut State {
-    match r_decode_round1_state(round1_state) {
+pub extern "system" fn Java_Musig2_decode_1round1_1state(
+    env: JNIEnv,
+    _class: JClass,
+    round1_state: JString,
+) -> jlong {
+    match r_decode_round1_state(env, round1_state) {
         Ok(s) => s,
-        Err(_) => null_mut(),
+        Err(_) => jlong::default(),
     }
 }
 
-pub fn r_decode_round1_state(round1_state: *const c_char) -> Result<*mut State, Error> {
-    let round1_state = unsafe {
-        if round1_state.is_null() {
-            return Err(Error::NullRound1State);
-        }
-
-        CStr::from_ptr(round1_state)
-    };
-    let round1_state = round1_state.to_str()?;
-    match serde_json::from_str(round1_state) {
-        Ok(s) => Ok(Box::into_raw(Box::new(s))),
+pub fn r_decode_round1_state(env: JNIEnv, round1_state: JString) -> Result<jlong, Error> {
+    let round1_state: String = env
+        .get_string(round1_state)
+        .map_err(|_| Error::NullRound1State)?
+        .into();
+    let state = serde_json::from_str::<State>(&round1_state);
+    match state {
+        Ok(s) => Ok(Box::into_raw(Box::new(s)) as jlong),
         Err(_) => Err(Error::NullRound1State),
     }
 }
@@ -144,19 +171,23 @@ pub fn r_decode_round1_state(round1_state: *const c_char) -> Result<*mut State, 
 /// Returns: msg String.
 /// Possible errors are `Normal Error` and `Null Round1 State Pointer`.
 #[no_mangle]
-pub extern "C" fn get_round1_msg(state: *mut State) -> *mut c_char {
-    match r_get_round1_msg(state) {
+pub extern "system" fn Java_Musig2_get_1round1_1msg(
+    env: JNIEnv,
+    _class: JClass,
+    state: jlong,
+) -> jstring {
+    match r_get_round1_msg(env, state) {
         Ok(msg) => msg,
-        Err(e) => e.into(),
+        Err(e) => convert_string_to_jstring(env, e.into()),
     }
 }
 
-pub fn r_get_round1_msg(state: *mut State) -> Result<*mut c_char, Error> {
+pub fn r_get_round1_msg(env: JNIEnv, state: jlong) -> Result<jstring, Error> {
     let state = unsafe {
-        if state.is_null() {
-            return Err(Error::NullRound1State);
-        }
-        &mut *state
+        // if state.is_null() {
+        //     return Err(Error::NullRound1State);
+        // }
+        &mut *(state as *mut State)
     };
 
     let msg: Vec<[u8; 65]> = state
@@ -166,7 +197,7 @@ pub fn r_get_round1_msg(state: *mut State) -> Result<*mut c_char, Error> {
         .collect();
     let msg_bytes = msg.concat();
 
-    Ok(bytes_to_c_char(msg_bytes)?)
+    Ok(bytes_to_c_char(env, msg_bytes))
 }
 
 /// It takes a lot of preparation to switch to round2 state([`StatePrime`]).
@@ -177,49 +208,61 @@ pub fn r_get_round1_msg(state: *mut State) -> Result<*mut c_char, Error> {
 /// Returns: [`StatePrime`] Pointer.
 /// Failure will return a null pointer.
 #[no_mangle]
-pub extern "C" fn get_round2_msg(
-    round1_state: *mut State,
-    message: *const c_char,
-    privkey: *const c_char,
-    pubkeys: *const c_char,
-    received_round1_msg: *const c_char,
-) -> *mut c_char {
-    match r_get_round2_msg(round1_state, message, privkey, pubkeys, received_round1_msg) {
+pub extern "system" fn Java_Musig2_get_1round2_1msg(
+    env: JNIEnv,
+    _class: JClass,
+    round1_state: jlong,
+    message: JString,
+    privkey: JString,
+    pubkeys: JString,
+    received_round1_msg: JString,
+) -> jstring {
+    match r_get_round2_msg(
+        env,
+        round1_state,
+        message,
+        privkey,
+        pubkeys,
+        received_round1_msg,
+    ) {
         Ok(state) => state,
-        Err(_) => null_mut(),
+        Err(e) => convert_string_to_jstring(env, e.into()),
     }
 }
 
 pub fn r_get_round2_msg(
-    round1_state: *mut State,
-    message: *const c_char,
-    privkey: *const c_char,
-    pubkeys: *const c_char,
-    received_round1_msg: *const c_char,
-) -> Result<*mut c_char, Error> {
+    env: JNIEnv,
+    round1_state: jlong,
+    message: JString,
+    privkey: JString,
+    pubkeys: JString,
+    received_round1_msg: JString,
+) -> Result<jstring, Error> {
     let round1_state = unsafe {
-        if round1_state.is_null() {
-            return Err(Error::NormalError);
-        }
-        &mut *round1_state
+        // if round1_state.is_null() {
+        //     return Err(Error::NormalError);
+        // }
+        &mut *(round1_state as *mut State)
     };
     let (message, pubkeys, received_round1_msg, keypair) =
-        round2_state_parse(message, privkey, pubkeys, received_round1_msg)?;
+        round2_state_parse(env, message, privkey, pubkeys, received_round1_msg)?;
 
     let round2_state =
         round1_state.sign_prime(&message, &pubkeys, &keypair, received_round1_msg)?;
-    Ok(bytes_to_c_char(round2_state.serialize().to_vec())?)
+    Ok(bytes_to_c_char(env, round2_state.serialize().to_vec()))
 }
 
+#[allow(clippy::type_complexity)]
 pub fn round2_state_parse(
-    message: *const c_char,
-    privkey: *const c_char,
-    pubkeys: *const c_char,
-    received_round1_msg: *const c_char,
+    env: JNIEnv,
+    message: JString,
+    privkey: JString,
+    pubkeys: JString,
+    received_round1_msg: JString,
 ) -> Result<(Vec<u8>, Vec<PublicKey>, Vec<Vec<PublicKey>>, KeyPair), Error> {
-    let message_bytes = c_char_to_r_bytes(message)?;
+    let message_bytes = c_char_to_r_bytes(env, message)?;
 
-    let secret_bytes = c_char_to_r_bytes(privkey)?;
+    let secret_bytes = c_char_to_r_bytes(env, privkey)?;
     if secret_bytes.len() != 32 {
         return Err(Error::NormalError);
     }
@@ -227,7 +270,7 @@ pub fn round2_state_parse(
     bytes.copy_from_slice(&secret_bytes[..]);
     let keypair = KeyPair::create_from_private_key(&bytes)?;
 
-    let pubkeys_bytes = c_char_to_r_bytes(pubkeys)?;
+    let pubkeys_bytes = c_char_to_r_bytes(env, pubkeys)?;
     let mut pubkeys = Vec::new();
     if pubkeys_bytes.len() % 65 != 0 {
         return Err(Error::NormalError);
@@ -241,7 +284,7 @@ pub fn round2_state_parse(
         pubkeys.push(pubkey);
     }
 
-    let received_round1_msg_bytes = c_char_to_r_bytes(received_round1_msg)?;
+    let received_round1_msg_bytes = c_char_to_r_bytes(env, received_round1_msg)?;
     if received_round1_msg_bytes.len() % ROUND1_MSG_SIZE != 0 {
         return Err(Error::NormalError);
     }
@@ -275,15 +318,19 @@ pub fn round2_state_parse(
 /// Returns: signature String.
 /// Possible errors are `Normal Error` and `Null Round2 State Pointer`.
 #[no_mangle]
-pub extern "C" fn get_signature(receievd_round2_msg: *const c_char) -> *mut c_char {
-    match r_get_signature(receievd_round2_msg) {
+pub extern "system" fn Java_Musig2_get_1signature(
+    env: JNIEnv,
+    _class: JClass,
+    receievd_round2_msg: JString,
+) -> jstring {
+    match r_get_signature(env, receievd_round2_msg) {
         Ok(sig) => sig,
-        Err(e) => e.into(),
+        Err(e) => convert_string_to_jstring(env, e.into()),
     }
 }
 
-pub fn r_get_signature(receievd_round2_msg: *const c_char) -> Result<*mut c_char, Error> {
-    let r_receievd_round2_msg = c_char_to_r_bytes(receievd_round2_msg)?;
+pub fn r_get_signature(env: JNIEnv, receievd_round2_msg: JString) -> Result<jstring, Error> {
+    let r_receievd_round2_msg = c_char_to_r_bytes(env, receievd_round2_msg)?;
     if r_receievd_round2_msg.len() % STATE_PRIME_SIZE != 0 {
         return Err(Error::NormalError);
     }
@@ -298,30 +345,26 @@ pub fn r_get_signature(receievd_round2_msg: *const c_char) -> Result<*mut c_char
 
     let s = sign_double_prime(&round2_msgs)?;
 
-    Ok(bytes_to_c_char(s.serialize().to_vec())?)
+    Ok(bytes_to_c_char(env, s.serialize().to_vec()))
 }
 
 /// Help func
 ///
 /// Convert rust's [`Vec<u8>`] type to a C string that can be called externally
-pub fn bytes_to_c_char(bytes: Vec<u8>) -> Result<*mut c_char, Error> {
+pub fn bytes_to_c_char(env: JNIEnv, bytes: Vec<u8>) -> jstring {
     let hex_str = hex::encode(bytes);
-    let c_str = CString::new(hex_str)?;
-    Ok(c_str.into_raw())
+    convert_string_to_jstring(env, hex_str)
 }
 
 /// Help func
 ///
 /// Convert externally obtained C strings into [`Vec<u8>`] types used internally by rust
-pub fn c_char_to_r_bytes(char: *const c_char) -> Result<Vec<u8>, Error> {
-    let c_char = unsafe {
-        if char.is_null() {
-            return Err(Error::NormalError);
-        }
-
-        CStr::from_ptr(char)
-    };
-    let r_bytes = hex::decode(c_char.to_str()?)?;
+pub fn c_char_to_r_bytes(env: JNIEnv, input: JString) -> Result<Vec<u8>, Error> {
+    let input: String = env
+        .get_string(input)
+        .map_err(|_| Error::NormalError)?
+        .into();
+    let r_bytes = hex::decode(&input)?;
     Ok(r_bytes)
 }
 
@@ -331,21 +374,29 @@ pub fn c_char_to_r_bytes(char: *const c_char) -> Result<Vec<u8>, Error> {
 /// Returns: String. Return the public key of the threshold-signature address.
 /// Possible error string returned is `Invalid Public Bytes`.
 #[no_mangle]
-pub extern "C" fn generate_threshold_pubkey(pubkeys: *const c_char, threshold: u8) -> *mut c_char {
-    match r_generate_tweak_pubkey(pubkeys, threshold as usize) {
+pub extern "system" fn Java_Musig2_generate_1threshold_1pubkey(
+    env: JNIEnv,
+    _class: JClass,
+    pubkeys: JString,
+    threshold: jint,
+) -> jstring {
+    match r_generate_tweak_pubkey(env, pubkeys, threshold as usize) {
         Ok(pubkey) => pubkey,
-        Err(_) => Error::InvalidPublicBytes.into(),
+        Err(_) => convert_string_to_jstring(env, Error::InvalidPublicBytes.into()),
     }
 }
 
 pub fn r_generate_tweak_pubkey(
-    pubkeys: *const c_char,
+    env: JNIEnv,
+    pubkeys: JString,
     threshold: usize,
-) -> Result<*mut c_char, Error> {
-    let mast = r_get_my_mast(pubkeys, threshold)?;
+) -> Result<jstring, Error> {
+    let mast = r_get_my_mast(env, pubkeys, threshold)?;
     let tweak = mast.generate_tweak_pubkey()?;
-    let c_tweak_str = CString::new(tweak)?;
-    Ok(c_tweak_str.into_raw())
+    Ok(env
+        .new_string(tweak)
+        .map_err(|_| Error::InvalidPublicBytes)?
+        .into_inner())
 }
 
 /// Generate a proof of the aggregated public key by
@@ -357,53 +408,47 @@ pub fn r_generate_tweak_pubkey(
 /// Return signed proofs for transaction validation.
 /// Possible error string returned is `Invalid Public Bytes`.
 #[no_mangle]
-pub extern "C" fn generate_control_block(
-    pubkeys: *const c_char,
+pub extern "system" fn Java_Musig2_generate_1control_1block(
+    env: JNIEnv,
+    _class: JClass,
+    pubkeys: JString,
     threshold: u8,
-    agg_pubkey: *const c_char,
-) -> *mut c_char {
-    match r_generate_control_block(pubkeys, threshold as usize, agg_pubkey) {
+    agg_pubkey: JString,
+) -> jstring {
+    match r_generate_control_block(env, pubkeys, threshold as usize, agg_pubkey) {
         Ok(pubkey) => pubkey,
-        Err(_) => Error::InvalidPublicBytes.into(),
+        Err(_) => convert_string_to_jstring(env, Error::InvalidPublicBytes.into()),
     }
 }
 
 pub fn r_generate_control_block(
-    pubkeys: *const c_char,
+    env: JNIEnv,
+    pubkeys: JString,
     threshold: usize,
-    agg_pubkey: *const c_char,
-) -> Result<*mut c_char, Error> {
-    let c_agg = unsafe {
-        if agg_pubkey.is_null() {
-            return Err(Error::InvalidPublicBytes);
-        }
-
-        CStr::from_ptr(agg_pubkey)
-    };
-
-    let r_agg_bytes = hex::decode(c_agg.to_str()?)?;
+    agg_pubkey: JString,
+) -> Result<jstring, Error> {
+    let c_agg: String = env
+        .get_string(agg_pubkey)
+        .map_err(|_| Error::InvalidPublicBytes)?
+        .into();
+    let r_agg_bytes = hex::decode(&c_agg)?;
     let mut keys = [0u8; PUBLICKEY_NORMAL_SIZE];
     keys.copy_from_slice(&r_agg_bytes[0..PUBLICKEY_NORMAL_SIZE]);
     let agg = PublicKey::parse(&keys)?;
 
-    let mast = r_get_my_mast(pubkeys, threshold)?;
+    let mast = r_get_my_mast(env, pubkeys, threshold)?;
     let control = mast.generate_merkle_proof(&agg)?;
     let control_hex = hex::encode(&control);
-    let c_control_str = CString::new(control_hex)?;
-    Ok(c_control_str.into_raw())
+    Ok(convert_string_to_jstring(env, control_hex))
 }
 
-pub fn r_get_my_mast(pubkeys: *const c_char, threshold: usize) -> Result<Mast, Error> {
+pub fn r_get_my_mast(env: JNIEnv, pubkeys: JString, threshold: usize) -> Result<Mast, Error> {
     // construct the public key of all people
-    let c_pubkeys = unsafe {
-        if pubkeys.is_null() {
-            return Err(Error::InvalidPublicBytes);
-        }
-
-        CStr::from_ptr(pubkeys)
-    };
-
-    let r_pubkeys_bytes = hex::decode(c_pubkeys.to_str()?)?;
+    let c_pubkeys: String = env
+        .get_string(pubkeys)
+        .map_err(|_| Error::InvalidPublicBytes)?
+        .into();
+    let r_pubkeys_bytes = hex::decode(&c_pubkeys)?;
     // ensure that it is the correct public key length
     if r_pubkeys_bytes.len() % PUBLICKEY_NORMAL_SIZE != 0 {
         return Err(Error::InvalidPublicBytes);
@@ -422,181 +467,4 @@ pub fn r_get_my_mast(pubkeys: *const c_char, threshold: usize) -> Result<Mast, E
     }
 
     Ok(Mast::new(pubkeys, threshold)?)
-}
-
-#[cfg(test)]
-mod tests {
-    use std::convert::TryFrom;
-
-    use libsecp256k1::Message;
-    use musig2::{verify, Signature};
-
-    use super::*;
-
-    const PRIVATEA: &str = "5495822c4f8efbe17b9bae42a85e8998baec458f3824440d1ce8d9357ad4a7b7";
-    const PRIVATEB: &str = "cef4bbc9689812098c379bec0bb063a895916008344ca04cddbd21ccbcce3bcf";
-    const PRIVATEC: &str = "c9045032eb6df7ebc51d862f9a6a8ffa90eb691dc1b70b4c7b8d1ed0fd8cc25f";
-    const MESSAGE: &str = "b9b74d5852010cc4bf1010500ae6a97eca7868c9779d50c60fb4ae568b01ea38";
-
-    fn convert_char_to_str(c: *mut c_char) -> String {
-        let c_str = unsafe {
-            assert!(!c.is_null());
-
-            CStr::from_ptr(c)
-        };
-        c_str.to_str().unwrap().to_owned()
-    }
-
-    #[test]
-    fn test_multiparty_signing() {
-        let privkey_a = CString::new(PRIVATEA).unwrap().into_raw();
-        let privkey_b = CString::new(PRIVATEB).unwrap().into_raw();
-        let privkey_c = CString::new(PRIVATEC).unwrap().into_raw();
-        let msg = CString::new(MESSAGE).unwrap().into_raw();
-
-        let pubkey_a = get_my_pubkey(privkey_a);
-        let pubkey_b = get_my_pubkey(privkey_b);
-        let pubkey_c = get_my_pubkey(privkey_c);
-        let pubkeys = bytes_to_c_char(
-            [
-                c_char_to_r_bytes(pubkey_a).unwrap(),
-                c_char_to_r_bytes(pubkey_b).unwrap(),
-                c_char_to_r_bytes(pubkey_c).unwrap(),
-            ]
-            .concat(),
-        )
-        .unwrap();
-
-        let round1_state_a = get_round1_state();
-        // round1_state_a serialization
-        let round1_state_a = encode_round1_state(round1_state_a);
-        // round1_state_a deserialization
-        let round1_state_a = decode_round1_state(round1_state_a);
-        let round1_state_b = get_round1_state();
-        let round1_state_c = get_round1_state();
-
-        let round1_msg_a = get_round1_msg(round1_state_a);
-        let round1_msg_b = get_round1_msg(round1_state_b);
-        let round1_msg_c = get_round1_msg(round1_state_c);
-
-        let round1_received_a = bytes_to_c_char(
-            [
-                c_char_to_r_bytes(round1_msg_b).unwrap(),
-                c_char_to_r_bytes(round1_msg_c).unwrap(),
-            ]
-            .concat(),
-        )
-        .unwrap();
-        let round1_received_b = bytes_to_c_char(
-            [
-                c_char_to_r_bytes(round1_msg_c).unwrap(),
-                c_char_to_r_bytes(round1_msg_a).unwrap(),
-            ]
-            .concat(),
-        )
-        .unwrap();
-        let round1_received_c = bytes_to_c_char(
-            [
-                c_char_to_r_bytes(round1_msg_a).unwrap(),
-                c_char_to_r_bytes(round1_msg_b).unwrap(),
-            ]
-            .concat(),
-        )
-        .unwrap();
-
-        let round2_msg_a =
-            get_round2_msg(round1_state_a, msg, privkey_a, pubkeys, round1_received_a);
-        let round2_msg_b =
-            get_round2_msg(round1_state_b, msg, privkey_b, pubkeys, round1_received_b);
-        let round2_msg_c =
-            get_round2_msg(round1_state_c, msg, privkey_c, pubkeys, round1_received_c);
-
-        let round2_received = bytes_to_c_char(
-            [
-                c_char_to_r_bytes(round2_msg_a).unwrap(),
-                c_char_to_r_bytes(round2_msg_b).unwrap(),
-                c_char_to_r_bytes(round2_msg_c).unwrap(),
-            ]
-            .concat(),
-        )
-        .unwrap();
-
-        let sig_char = get_signature(round2_received);
-        let mut sig_bytes = [0u8; 64];
-        sig_bytes.copy_from_slice(&c_char_to_r_bytes(sig_char).unwrap()[..64]);
-        let signature = Signature::try_from(sig_bytes).unwrap();
-
-        let r_sig = c_char_to_r_bytes(sig_char).unwrap();
-        println!("agg_signature: {}", hex::encode(r_sig));
-
-        let agg = get_key_agg(pubkeys);
-        let mut agg_pubkey_bytes = [0u8; PUBLICKEY_NORMAL_SIZE];
-        agg_pubkey_bytes.copy_from_slice(&c_char_to_r_bytes(agg).unwrap()[..65]);
-        let agg_pubkey = PublicKey::parse(&agg_pubkey_bytes).unwrap();
-
-        println!("agg_pubkey: {}", hex::encode(&agg_pubkey.serialize()));
-
-        verify(
-            &signature,
-            &Message::parse_slice(&hex::decode(&MESSAGE).unwrap()).unwrap(),
-            &agg_pubkey,
-        )
-        .unwrap();
-    }
-
-    #[test]
-    fn generate_mulsig_pubkey_should_work() {
-        let privkey_a = CString::new(PRIVATEA).unwrap().into_raw();
-        let privkey_b = CString::new(PRIVATEB).unwrap().into_raw();
-        let privkey_c = CString::new(PRIVATEC).unwrap().into_raw();
-        let pubkey_a = get_my_pubkey(privkey_a);
-        let pubkey_b = get_my_pubkey(privkey_b);
-        let pubkey_c = get_my_pubkey(privkey_c);
-        let pubkeys = bytes_to_c_char(
-            [
-                c_char_to_r_bytes(pubkey_a).unwrap(),
-                c_char_to_r_bytes(pubkey_b).unwrap(),
-                c_char_to_r_bytes(pubkey_c).unwrap(),
-            ]
-            .concat(),
-        )
-        .unwrap();
-
-        let multi_pubkey = convert_char_to_str(generate_threshold_pubkey(pubkeys, 2));
-        assert_eq!(
-            "bc1p297wygd7g3fwsjt80spqjsg8ydhjvq8ccr3a3xexhq8y3tsl0srqypr7zf",
-            multi_pubkey
-        );
-    }
-
-    #[test]
-    fn generate_control_block_should_work() {
-        let privkey_a = CString::new(PRIVATEA).unwrap().into_raw();
-        let privkey_b = CString::new(PRIVATEB).unwrap().into_raw();
-        let privkey_c = CString::new(PRIVATEC).unwrap().into_raw();
-        let pubkey_a = get_my_pubkey(privkey_a);
-        let pubkey_b = get_my_pubkey(privkey_b);
-        let pubkey_c = get_my_pubkey(privkey_c);
-        let pubkeys = bytes_to_c_char(
-            [
-                c_char_to_r_bytes(pubkey_a).unwrap(),
-                c_char_to_r_bytes(pubkey_b).unwrap(),
-                c_char_to_r_bytes(pubkey_c).unwrap(),
-            ]
-            .concat(),
-        )
-        .unwrap();
-        let pubkeys_ab = bytes_to_c_char(
-            [
-                c_char_to_r_bytes(pubkey_a).unwrap(),
-                c_char_to_r_bytes(pubkey_b).unwrap(),
-            ]
-            .concat(),
-        )
-        .unwrap();
-        let ab_agg = get_key_agg(pubkeys_ab);
-        let control =
-            hex::encode(&c_char_to_r_bytes(generate_control_block(pubkeys, 2, ab_agg)).unwrap());
-        assert_eq!("e9767f9fc30376efc53167707a4ceb905391be7ce971df6493942e1d008e0a7a9aaa5790c2bc7c2095f50c2b7d9c2fc9ba595352599a38b944bece8ea8b10141ddb1f00c976e5352a16f06008a1066bc30ecdca1196ab41c3447345d70b6da16", control);
-    }
 }

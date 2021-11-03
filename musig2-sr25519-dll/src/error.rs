@@ -1,13 +1,11 @@
-use std::{
-    ffi::{CString, NulError},
-    str::Utf8Error,
-};
+use std::str::Utf8Error;
 
 use hex::FromHexError;
 use mast::error::MastError;
 use schnorrkel::SignatureError;
 
 #[derive(Debug)]
+#[allow(clippy::enum_variant_names)]
 pub enum Error {
     // normal error
     NormalError,
@@ -39,48 +37,26 @@ impl From<musig2::Error> for Error {
 }
 
 impl From<SignatureError> for Error {
-    fn from(e: SignatureError) -> Self {
-        match e {
-            _ => Self::NormalError,
-        }
-    }
-}
-
-impl From<NulError> for Error {
-    fn from(_: NulError) -> Self {
+    fn from(_e: SignatureError) -> Self {
         Self::NormalError
     }
 }
 
 impl From<MastError> for Error {
-    fn from(e: MastError) -> Self {
-        match e {
-            _ => Self::NormalError,
-        }
+    fn from(_e: MastError) -> Self {
+        Self::NormalError
     }
 }
 
-impl From<Error> for *mut i8 {
+impl From<Error> for String {
     fn from(e: Error) -> Self {
         match e {
-            Error::NormalError => unsafe {
-                CString::from_vec_unchecked(b"Normal Error".to_vec()).into_raw()
-            },
-            Error::NullKeypair => unsafe {
-                CString::from_vec_unchecked(b"Null KeyPair Pointer".to_vec()).into_raw()
-            },
-            Error::NullRound1State => unsafe {
-                CString::from_vec_unchecked(b"Null Round1 State Pointer".to_vec()).into_raw()
-            },
-            Error::EncodeFail => unsafe {
-                CString::from_vec_unchecked(b"Encode Fail".to_vec()).into_raw()
-            },
-            Error::InvalidPublicBytes => unsafe {
-                CString::from_vec_unchecked(b"Invalid Public Bytes".to_vec()).into_raw()
-            },
-            Error::InvalidPhrase => unsafe {
-                CString::from_vec_unchecked(b"Invalid Phrase".to_vec()).into_raw()
-            },
+            Error::NormalError => "Normal Error".to_owned(),
+            Error::NullKeypair => "Null KeyPair Pointer".to_owned(),
+            Error::NullRound1State => "Null Round1 State Pointer".to_owned(),
+            Error::EncodeFail => "Encode Fail".to_owned(),
+            Error::InvalidPublicBytes => "Invalid Public Bytes".to_owned(),
+            Error::InvalidPhrase => "Invalid Phrase".to_owned(),
         }
     }
 }

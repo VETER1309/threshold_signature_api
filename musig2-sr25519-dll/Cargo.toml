@@ -10,11 +10,11 @@ edition = "2018"
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
+jni = "0.19.0"
 mast = { git = "https://github.com/chainx-org/mast", branch = "sr25519" }
 musig2 = { git = "https://github.com/chainx-org/Musig2", branch = "sr25519" }
 schnorrkel = { git = "https://github.com/chainx-org/schnorrkel", branch = "musig2" }
 merlin = { version = "3.0" }
-libc = { version = "0.2.0" }
 hex = { version = "0.4.0" }
 serde = { version = "1.0.123", default-features = false, optional = true }
 serde_json = { version = "1.0.68" }

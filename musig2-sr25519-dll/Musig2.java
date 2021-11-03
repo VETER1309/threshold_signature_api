@@ -1,4 +1,5 @@
 class Musig2 {
+    public static native String get_my_privkey(String jarg1);
     public static native String get_my_pubkey(String jarg1);
     public static native long get_round1_state();
     public static native String encode_round1_state(long jarg1);
@@ -10,14 +11,14 @@ class Musig2 {
     public static native String generate_threshold_pubkey(String jarg1, long jarg2);
     public static native String generate_control_block(String jarg1, long jarg2, String jarg3);
 
-    final static String privateA = "5495822c4f8efbe17b9bae42a85e8998baec458f3824440d1ce8d9357ad4a7b7";
-    final static String privateB = "cef4bbc9689812098c379bec0bb063a895916008344ca04cddbd21ccbcce3bcf";
-    final static String privateC = "c9045032eb6df7ebc51d862f9a6a8ffa90eb691dc1b70b4c7b8d1ed0fd8cc25f";
+    final static String phrase1 = "flame flock chunk trim modify raise rough client coin busy income smile";
+    final static String phrase2 = "shrug argue supply evolve alarm caught swamp tissue hollow apology youth ethics";
+    final static String phrase3 = "awesome beef hill broccoli strike poem rebel unique turn circle cool system";
 
     final static String msg = "b9b74d5852010cc4bf1010500ae6a97eca7868c9779d50c60fb4ae568b01ea38";
 
     static {
-        System.loadLibrary("musig2_dll");
+        System.loadLibrary("musig2_sr25519_dll");
     }
 
     public static String join(String sep, String[] reveals) {
@@ -27,6 +28,10 @@ class Musig2 {
         }
         return result;
     };
+    public static String getMyPrivkey(String phrase) {
+        return Musig2.get_my_privkey(phrase);
+    }
+
     public static String getMyPubkey(String priv) {
         return Musig2.get_my_pubkey(priv);
     };
@@ -68,6 +73,10 @@ class Musig2 {
     }
 
     public static void main(String[] args) {
+
+        String privateA = Musig2.getMyPrivkey(phrase1);
+        String privateB = Musig2.getMyPrivkey(phrase2);
+        String privateC = Musig2.getMyPrivkey(phrase3);
 
         String pubkeyA = Musig2.getMyPubkey(privateA);
         String pubkeyB = Musig2.getMyPubkey(privateB);

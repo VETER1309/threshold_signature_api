@@ -34,7 +34,7 @@ pub extern "C" fn get_my_pubkey(privkey: *const c_char) -> *mut c_char {
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Musig_get_1my_1pubkey(
+pub extern "system" fn Java_Musig_get_1my_1pubkey(
     env: JNIEnv,
     _class: JClass,
     privkey: JString,
@@ -83,7 +83,7 @@ pub extern "C" fn get_musig(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Musig_get_1musig(
+pub extern "system" fn Java_Musig_get_1musig(
     env: JNIEnv,
     _class: JClass,
     privkey: JString,
@@ -131,7 +131,7 @@ pub extern "C" fn encode_reveal_stage(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Musig_encode_1reveal_1stage(
+pub extern "system" fn Java_Musig_encode_1reveal_1stage(
     env: JNIEnv,
     _class: JClass,
     musig: jlong,
@@ -176,7 +176,7 @@ pub extern "C" fn decode_reveal_stage(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Musig_decode_1reveal_1stage(
+pub extern "system" fn Java_Musig_decode_1reveal_1stage(
     env: JNIEnv,
     _class: JClass,
     reveal_stage: JString,
@@ -231,7 +231,7 @@ pub extern "C" fn get_my_reveal(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Musig_get_1my_1reveal(
+pub extern "system" fn Java_Musig_get_1my_1reveal(
     env: JNIEnv,
     _class: JClass,
     musig: jlong,
@@ -263,7 +263,7 @@ pub extern "C" fn cosign_stage(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Musig_cosign_1stage(
+pub extern "system" fn Java_Musig_cosign_1stage(
     env: JNIEnv,
     _class: JClass,
     musig: jlong,
@@ -361,7 +361,7 @@ pub extern "C" fn encode_cosign_stage(musig: *mut MuSig<Transcript, CosignStage>
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Musig_encode_1cosign_1stage(
+pub extern "system" fn Java_Musig_encode_1cosign_1stage(
     env: JNIEnv,
     _class: JClass,
     musig: jlong,
@@ -406,7 +406,7 @@ pub extern "C" fn decode_cosign_stage(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Musig_decode_1cosign_1stage(
+pub extern "system" fn Java_Musig_decode_1cosign_1stage(
     env: JNIEnv,
     _class: JClass,
     reveal_stage: JString,
@@ -458,7 +458,7 @@ pub extern "C" fn get_my_cosign(musig: *mut MuSig<Transcript, CosignStage>) -> *
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Musig_get_1my_1cosign(
+pub extern "system" fn Java_Musig_get_1my_1cosign(
     env: JNIEnv,
     _class: JClass,
     musig: jlong,
@@ -490,7 +490,7 @@ pub extern "C" fn get_signature(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Musig_get_1signature(
+pub extern "system" fn Java_Musig_get_1signature(
     env: JNIEnv,
     _class: JClass,
     reveals: JString,
@@ -609,7 +609,7 @@ pub extern "C" fn get_agg_pubkey(pubkeys: *const c_char) -> *mut c_char {
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Musig_get_1agg_1pubkey(
+pub extern "system" fn Java_Musig_get_1agg_1pubkey(
     env: JNIEnv,
     _class: JClass,
     pubkeys: JString,
@@ -671,7 +671,7 @@ pub extern "C" fn generate_threshold_pubkey(pubkeys: *const c_char, threshold: u
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Mast_generate_1threshold_1pubkey(
+pub extern "system" fn Java_Musig_generate_1threshold_1pubkey(
     env: JNIEnv,
     _class: JClass,
     pubkeys: JString,
@@ -721,7 +721,7 @@ pub extern "C" fn generate_control_block(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Mast_generate_1control_1block(
+pub extern "system" fn Java_Musig_generate_1control_1block(
     env: JNIEnv,
     _class: JClass,
     pubkeys: JString,
@@ -808,7 +808,7 @@ pub extern "C" fn get_my_privkey(phrase: *const c_char) -> *mut c_char {
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Musig_get_1my_1privkey(
+pub extern "system" fn Java_Musig_get_1my_1privkey(
     env: JNIEnv,
     _class: JClass,
     phrase: JString,

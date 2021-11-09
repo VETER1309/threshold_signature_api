@@ -15,18 +15,18 @@ const {
 const phrase0 = "flame flock chunk trim modify raise rough client coin busy income smile"
 const phrase1 = "shrug argue supply evolve alarm caught swamp tissue hollow apology youth ethics"
 const phrase2 = "awesome beef hill broccoli strike poem rebel unique turn circle cool system"
-
+const message = 666666;
 const private0 = getMyPrivkey(phrase0)
 const private1 = getMyPrivkey(phrase1)
 const private2 = getMyPrivkey(phrase2)
 
-let musig0 = getMyMusig(private0)
+let musig0 = getMyMusig(message, private0)
 // Reveal stage object serialization
 musig0_reveal_stage = encodeRevealStage(musig0)
 // Reveal stage object deserialization
 musig0 = decodeRevealStage(musig0_reveal_stage)
-const musig1 = getMyMusig(private1)
-const musig2 = getMyMusig(private2)
+const musig1 = getMyMusig(message, private1)
+const musig2 = getMyMusig(message, private2)
 
 const pubkey0 = getMyPubkey(private0)
 const pubkey1 = getMyPubkey(private1)
@@ -38,7 +38,7 @@ const reveal2 = getMyReveal(musig2)
 const cosign0 = getMyCosign(musig0, [reveal1, reveal2], [pubkey1, pubkey2])
 const cosign1 = getMyCosign(musig1, [reveal0, reveal2], [pubkey0, pubkey2])
 const cosign2 = getMyCosign(musig2, [reveal0, reveal1], [pubkey0, pubkey1])
-const signature = getAggSignature([reveal0, reveal1, reveal2], [pubkey0, pubkey1, pubkey2], [cosign0, cosign1, cosign2])
+const signature = getAggSignature(message, [reveal0, reveal1, reveal2], [pubkey0, pubkey1, pubkey2], [cosign0, cosign1, cosign2])
 const pubkey = getAggPubkey([pubkey0, pubkey1, pubkey2])
 console.log("pubkey:", pubkey)
 console.log("signature:", signature)

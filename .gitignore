@@ -26,3 +26,5 @@ build/
 .gradle/
 
 local.properties
+
+*.class

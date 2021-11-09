@@ -48,15 +48,17 @@ pub fn r_get_my_pubkey(privkey: *const c_char) -> Result<*mut c_char, Error> {
 
 #[no_mangle]
 pub extern "C" fn get_musig(
+    message: u32,
     privkey: *const c_char,
 ) -> *mut MuSig<Transcript, RevealStage<Keypair>> {
-    match r_get_musig(privkey) {
+    match r_get_musig(message, privkey) {
         Ok(musig) => musig,
         Err(_) => null_mut(),
     }
 }
 
 pub fn r_get_musig(
+    message: u32,
     privkey: *const c_char,
 ) -> Result<*mut MuSig<Transcript, RevealStage<Keypair>>, Error> {
     let c_priv = unsafe {
@@ -71,7 +73,8 @@ pub fn r_get_musig(
 
     let secret = SecretKey::from_bytes(&secret_bytes[..])?;
     let keypair = Keypair::from(secret);
-    let t = signing_context(b"multi-sig").bytes(b"We are legion!");
+    let message = message.to_be_bytes();
+    let t = signing_context(b"multi-sig").bytes(&message);
     let musig = MuSig::new(keypair, t).reveal_stage();
     Ok(Box::into_raw(Box::new(musig)))
 }
@@ -289,22 +292,25 @@ pub extern "C" fn get_my_cosign(musig: *mut MuSig<Transcript, CosignStage>) -> *
 
 #[no_mangle]
 pub extern "C" fn get_signature(
+    message: u32,
     reveals: *const c_char,
     pubkeys: *const c_char,
     cosign: *const c_char,
 ) -> *mut c_char {
-    match r_get_signature(reveals, pubkeys, cosign) {
+    match r_get_signature(message, reveals, pubkeys, cosign) {
         Ok(sig) => sig,
         Err(_) => Error::InvalidSignature.into(),
     }
 }
 
 pub fn r_get_signature(
+    message: u32,
     reveals: *const c_char,
     pubkeys: *const c_char,
     cosign: *const c_char,
 ) -> Result<*mut c_char, Error> {
-    let t = signing_context(b"multi-sig").bytes(b"We are legion!");
+    let message = message.to_be_bytes();
+    let t = signing_context(b"multi-sig").bytes(&message);
     let mut c = collect_cosignatures(t.clone());
 
     // construct the public key of all people
@@ -537,6 +543,7 @@ mod tests {
     const PUBLICB: &str = "90b0ae8d9be3dab2f61595eb357846e98c185483aff9fa211212a87ad18ae547";
     const PUBLICC: &str = "66768a820dd1e686f28167a572f5ea1acb8c3162cb33f0d4b2b6bee287742415";
     const PUBLICAB: &str = "7c9a72882718402bf909b3c1693af60501c7243d79ecc8cf030fa253eb136861";
+    const MESSAGE: u32 = 666666;
 
     fn convert_char_to_str(c: *mut c_char) -> String {
         let c_str = unsafe {
@@ -559,13 +566,13 @@ mod tests {
         let pubkey_1 = convert_char_to_str(get_my_pubkey(secret_key_1));
         let pubkey_2 = convert_char_to_str(get_my_pubkey(secret_key_2));
 
-        let musig_0 = get_musig(secret_key_0);
+        let musig_0 = get_musig(MESSAGE, secret_key_0);
         // Reveal stage object serialization
         let musig_0 = encode_reveal_stage(musig_0);
         // Reveal stage object deserialization
         let musig_0 = decode_reveal_stage(musig_0);
-        let musig_1 = get_musig(secret_key_1);
-        let musig_2 = get_musig(secret_key_2);
+        let musig_1 = get_musig(MESSAGE, secret_key_1);
+        let musig_2 = get_musig(MESSAGE, secret_key_2);
         let pubkeys = pubkey_0 + &pubkey_1 + &pubkey_2;
         let pubkeys = CString::new(pubkeys.as_str()).unwrap().into_raw();
         let reveal_0 = convert_char_to_str(get_my_reveal(musig_0));
@@ -585,10 +592,10 @@ mod tests {
         let cosign_2 = convert_char_to_str(get_my_cosign(musig_2));
         let cosigns = cosign_0 + cosign_1.as_str() + cosign_2.as_str();
         let cosigns = CString::new(cosigns.as_str()).unwrap().into_raw();
-        let signature = convert_char_to_str(get_signature(reveals, pubkeys, cosigns));
+        let signature = convert_char_to_str(get_signature(MESSAGE, reveals, pubkeys, cosigns));
         let signature = Signature::from_bytes(&hex::decode(signature).unwrap()).unwrap();
-
-        let t = signing_context(b"multi-sig").bytes(b"We are legion!");
+        let message = MESSAGE.to_be_bytes();
+        let t = signing_context(b"multi-sig").bytes(&message);
         let pubkey = convert_char_to_str(get_agg_pubkey(pubkeys));
         let pubkey = PublicKey::from_bytes(&hex::decode(pubkey).unwrap()).unwrap();
         assert!(pubkey.verify(t.clone(), &signature).is_ok());

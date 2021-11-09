@@ -4,20 +4,20 @@ const lib_path = __dirname + "/libmusig_dll"
 const lib = ffi.Library(lib_path, {
     get_my_pubkey: ['string', ['string']],
     get_my_privkey: ['string', ['string']],
-    get_musig: ['pointer', ['string']],
+    get_musig: ['pointer', ['int', 'string']],
     get_my_reveal: ['string', ['pointer']],
     encode_reveal_stage: ['string', ['pointer']],
     decode_reveal_stage: ['pointer', ['string']],
     cosign_stage: ['pointer', ['pointer', 'string', 'string']],
     get_my_cosign: ['string', ['pointer']],
-    get_signature: ['string', ['string', 'string', 'string']],
+    get_signature: ['string', ['int', 'string', 'string', 'string']],
     get_agg_pubkey: ['string', ['string']],
     generate_threshold_pubkey: ['string', ['string', 'uint8']],
     generate_control_block: ['string', ['string', 'uint8', 'string']]
 });
 
-getMyMusig = function (priv) {
-    return lib.get_musig(priv)
+getMyMusig = function (message, priv) {
+    return lib.get_musig(message, priv)
 }
 
 getMyPubkey = function (priv) {
@@ -45,8 +45,8 @@ decodeRevealStage = function (musig) {
     return lib.decode_reveal_stage(musig)
 }
 
-getAggSignature = function (reveals, pubkeys, cosigns) {
-    return lib.get_signature(reveals.join(""), pubkeys.join(""), cosigns.join(""))
+getAggSignature = function (message, reveals, pubkeys, cosigns) {
+    return lib.get_signature(message, reveals.join(""), pubkeys.join(""), cosigns.join(""))
 }
 
 getAggPubkey = function (pubkeys) {

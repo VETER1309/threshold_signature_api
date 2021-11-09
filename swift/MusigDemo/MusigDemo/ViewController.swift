@@ -16,12 +16,13 @@ class ViewController: UIViewController {
         let phrase0 = "flame flock chunk trim modify raise rough client coin busy income smile"
         let phrase1 = "shrug argue supply evolve alarm caught swamp tissue hollow apology youth ethics"
         let phrase2 = "awesome beef hill broccoli strike poem rebel unique turn circle cool system"
+        let msg: UInt32 = 666666
         let private0 = getMyPrivkey(phrase: phrase0)
         let private1 = getMyPrivkey(phrase: phrase1)
         let private2 = getMyPrivkey(phrase: phrase2)
-        var musig0 = getMusig(priv: private0)
-        let musig1 = getMusig(priv: private1)
-        let musig2 = getMusig(priv: private2)
+        var musig0 = getMusig(message: msg, priv: private0)
+        let musig1 = getMusig(message: msg, priv: private1)
+        let musig2 = getMusig(message: msg, priv: private2)
         let pubkey0 = getMyPubkey(priv: private0)
         let pubkey1 = getMyPubkey(priv: private1)
         let pubkey2 = getMyPubkey(priv: private2)
@@ -35,7 +36,7 @@ class ViewController: UIViewController {
         let cosign0 = getMyCosign(musig: musig0, reveals: [reveal1, reveal2], pubkeys: [pubkey1, pubkey2])
         let cosign1 = getMyCosign(musig: musig1, reveals: [reveal0, reveal2], pubkeys: [pubkey0, pubkey2])
         let cosign2 = getMyCosign(musig: musig2, reveals: [reveal0, reveal1], pubkeys: [pubkey0, pubkey1])
-        let signature = getAggSignature(reveals: [reveal0, reveal1, reveal2], cosigns: [cosign0, cosign1, cosign2], pubkeys: [pubkey0, pubkey1, pubkey2])
+        let signature = getAggSignature(message: msg, reveals: [reveal0, reveal1, reveal2], cosigns: [cosign0, cosign1, cosign2], pubkeys: [pubkey0, pubkey1, pubkey2])
         let pubkey = getAggPublicKey(pubkeys: [pubkey0, pubkey1, pubkey2])
         print("signature:", signature)
         print("pubkey:", pubkey)

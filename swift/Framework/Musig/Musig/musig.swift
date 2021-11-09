@@ -7,8 +7,8 @@
 
 import Foundation
 
-public func getMusig(priv: String) -> OpaquePointer?{
-    return get_musig(priv)
+public func getMusig(message: UInt32, priv: String) -> OpaquePointer?{
+    return get_musig(message, priv)
 }
 
 public func getMyPrivkey(phrase: String) -> String{
@@ -36,8 +36,8 @@ public func getMyCosign(musig:OpaquePointer?, reveals:[String], pubkeys:[String]
     return String.init(cString:get_my_cosign(musig))
 }
 
-public func getAggSignature(reveals:[String], cosigns:[String], pubkeys:[String]) -> String{
-    return String.init(cString:get_signature(reveals.joined(separator: ""), pubkeys.joined(separator: ""), cosigns.joined(separator: "")))
+public func getAggSignature(message: UInt32, reveals:[String], cosigns:[String], pubkeys:[String]) -> String{
+    return String.init(cString:get_signature(message, reveals.joined(separator: ""), pubkeys.joined(separator: ""), cosigns.joined(separator: "")))
 }
 public func getAggPublicKey(pubkeys:[String]) -> String{
     return String.init(cString:get_agg_pubkey(pubkeys.joined(separator: "")))

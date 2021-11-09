@@ -16,7 +16,7 @@
 		782C8A932705B0C500D2B937 /* MusigDemoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 782C8A922705B0C500D2B937 /* MusigDemoTests.swift */; };
 		782C8A9D2705B0C500D2B937 /* MusigDemoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 782C8A9C2705B0C500D2B937 /* MusigDemoUITests.swift */; };
 		782C8A9F2705B0C500D2B937 /* MusigDemoUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 782C8A9E2705B0C500D2B937 /* MusigDemoUITestsLaunchTests.swift */; };
-		78A3B65027216206007CBC78 /* Musig in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3B64F27216206007CBC78 /* Musig */; };
+		787C731C273A865D00770B1E /* Musig in Frameworks */ = {isa = PBXBuildFile; productRef = 787C731B273A865D00770B1E /* Musig */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,7 +70,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				78A3B65027216206007CBC78 /* Musig in Frameworks */,
+				787C731C273A865D00770B1E /* Musig in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -160,7 +160,7 @@
 			);
 			name = MusigDemo;
 			packageProductDependencies = (
-				78A3B64F27216206007CBC78 /* Musig */,
+				787C731B273A865D00770B1E /* Musig */,
 			);
 			productName = MusigDemo;
 			productReference = 782C8A782705B0C400D2B937 /* MusigDemo.app */;
@@ -235,7 +235,7 @@
 			);
 			mainGroup = 782C8A6F2705B0C400D2B937;
 			packageReferences = (
-				78A3B64E27216206007CBC78 /* XCRemoteSwiftPackageReference "Musig" */,
+				787C731A273A865D00770B1E /* XCRemoteSwiftPackageReference "Musig" */,
 			);
 			productRefGroup = 782C8A792705B0C400D2B937 /* Products */;
 			projectDirPath = "";
@@ -645,20 +645,20 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		78A3B64E27216206007CBC78 /* XCRemoteSwiftPackageReference "Musig" */ = {
+		787C731A273A865D00770B1E /* XCRemoteSwiftPackageReference "Musig" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/AAweidai/Musig";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.6.0;
+				kind = upToNextMinorVersion;
+				minimumVersion = 1.7.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		78A3B64F27216206007CBC78 /* Musig */ = {
+		787C731B273A865D00770B1E /* Musig */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 78A3B64E27216206007CBC78 /* XCRemoteSwiftPackageReference "Musig" */;
+			package = 787C731A273A865D00770B1E /* XCRemoteSwiftPackageReference "Musig" */;
 			productName = Musig;
 		};
 /* End XCSwiftPackageProductDependency section */

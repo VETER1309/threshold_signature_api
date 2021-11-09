@@ -182,7 +182,7 @@ pub fn r_get_round1_msg(state: *mut State) -> Result<*mut c_char, Error> {
 #[no_mangle]
 pub extern "C" fn get_round2_msg(
     round1_state: *mut State,
-    message: *const c_char,
+    message: u32,
     privkey: *const c_char,
     pubkeys: *const c_char,
     received_round1_msg: *const c_char,
@@ -195,7 +195,7 @@ pub extern "C" fn get_round2_msg(
 
 pub fn r_get_round2_msg(
     round1_state: *mut State,
-    message: *const c_char,
+    message: u32,
     privkey: *const c_char,
     pubkeys: *const c_char,
     received_round1_msg: *const c_char,
@@ -215,13 +215,13 @@ pub fn r_get_round2_msg(
 }
 
 pub fn round2_state_parse(
-    message: *const c_char,
+    message: u32,
     privkey: *const c_char,
     pubkeys: *const c_char,
     received_round1_msg: *const c_char,
 ) -> Result<(Transcript, Vec<PublicKey>, Keypair, Vec<Vec<PublicKey>>), Error> {
     // construct message
-    let message_bytes = c_char_to_r_bytes(message)?;
+    let message_bytes = message.to_be_bytes();
     let mut message = Transcript::new(b"SigningContext");
     message.append_message(b"", b"multi-sig");
     message.append_message(b"sign-bytes", &message_bytes);
@@ -457,7 +457,7 @@ mod tests {
     const PUBLICA: &str = "005431ba274d567440f1da2fc4b8bc37e90d8155bf158966907b3f67a9e13b2d";
     const PUBLICB: &str = "90b0ae8d9be3dab2f61595eb357846e98c185483aff9fa211212a87ad18ae547";
     const PUBLICC: &str = "66768a820dd1e686f28167a572f5ea1acb8c3162cb33f0d4b2b6bee287742415";
-    const MESSAGE: &str = "b9b74d5852010cc4bf1010500ae6a97eca7868c9779d50c60fb4ae568b01ea38";
+    const MESSAGE: u32 = 666666;
 
     fn convert_char_to_str(c: *mut c_char) -> String {
         let c_str = unsafe {
@@ -476,8 +476,6 @@ mod tests {
         let secret_key_0 = get_my_privkey(phrase_0);
         let secret_key_1 = get_my_privkey(phrase_1);
         let secret_key_2 = get_my_privkey(phrase_2);
-
-        let msg = CString::new(MESSAGE).unwrap().into_raw();
 
         let pubkey_a = get_my_pubkey(secret_key_0);
         let pubkey_b = get_my_pubkey(secret_key_1);
@@ -531,21 +529,21 @@ mod tests {
 
         let round2_msg_a = get_round2_msg(
             round1_state_a,
-            msg,
+            MESSAGE,
             secret_key_0,
             pubkeys,
             round1_received_a,
         );
         let round2_msg_b = get_round2_msg(
             round1_state_b,
-            msg,
+            MESSAGE,
             secret_key_1,
             pubkeys,
             round1_received_b,
         );
         let round2_msg_c = get_round2_msg(
             round1_state_c,
-            msg,
+            MESSAGE,
             secret_key_2,
             pubkeys,
             round1_received_c,
@@ -575,7 +573,7 @@ mod tests {
 
         let mut message = Transcript::new(b"SigningContext");
         message.append_message(b"", b"multi-sig");
-        let message_bytes = c_char_to_r_bytes(msg).unwrap();
+        let message_bytes = MESSAGE.to_be_bytes();
         message.append_message(b"sign-bytes", &message_bytes);
         assert!(agg_pubkey.verify(message, &signature).is_ok());
     }

@@ -454,9 +454,6 @@ mod tests {
         "shrug argue supply evolve alarm caught swamp tissue hollow apology youth ethics";
     const PHRASE2: &str =
         "awesome beef hill broccoli strike poem rebel unique turn circle cool system";
-    const PUBLICA: &str = "005431ba274d567440f1da2fc4b8bc37e90d8155bf158966907b3f67a9e13b2d";
-    const PUBLICB: &str = "90b0ae8d9be3dab2f61595eb357846e98c185483aff9fa211212a87ad18ae547";
-    const PUBLICC: &str = "66768a820dd1e686f28167a572f5ea1acb8c3162cb33f0d4b2b6bee287742415";
     const MESSAGE: u32 = 666666;
 
     fn convert_char_to_str(c: *mut c_char) -> String {
@@ -580,24 +577,43 @@ mod tests {
 
     #[test]
     fn generate_mulsig_pubkey_should_work() {
-        let pubkeys = PUBLICA.to_owned() + PUBLICB + PUBLICC;
+        let phrase_0 = CString::new(PHRASE0).unwrap().into_raw();
+        let phrase_1 = CString::new(PHRASE1).unwrap().into_raw();
+        let phrase_2 = CString::new(PHRASE2).unwrap().into_raw();
+        let secret_key_0 = get_my_privkey(phrase_0);
+        let secret_key_1 = get_my_privkey(phrase_1);
+        let secret_key_2 = get_my_privkey(phrase_2);
+        let pubkey_a = convert_char_to_str(get_my_pubkey(secret_key_0));
+        let pubkey_b = convert_char_to_str(get_my_pubkey(secret_key_1));
+        let pubkey_c = convert_char_to_str(get_my_pubkey(secret_key_2));
+        let pubkeys = pubkey_a + &pubkey_b + &pubkey_c;
         let pubkeys = CString::new(pubkeys.as_str()).unwrap().into_raw();
 
         let multi_pubkey = convert_char_to_str(generate_threshold_pubkey(pubkeys, 2));
         assert_eq!(
-            "2623a598f40659352150c8fb5bdbd0baca6ae7d8e3cbefaad55b376e265d3c0e",
+            "3ee8244d248f1e06f72ab7d38ee7f25024d33f555eb585e167816f03c7cde719",
             multi_pubkey
         );
     }
 
     #[test]
     fn generate_control_block_should_work() {
-        let pubkeys = PUBLICA.to_owned() + PUBLICB + PUBLICC;
+        let phrase_0 = CString::new(PHRASE0).unwrap().into_raw();
+        let phrase_1 = CString::new(PHRASE1).unwrap().into_raw();
+        let phrase_2 = CString::new(PHRASE2).unwrap().into_raw();
+        let secret_key_0 = get_my_privkey(phrase_0);
+        let secret_key_1 = get_my_privkey(phrase_1);
+        let secret_key_2 = get_my_privkey(phrase_2);
+        let pubkey_a = convert_char_to_str(get_my_pubkey(secret_key_0));
+        let pubkey_b = convert_char_to_str(get_my_pubkey(secret_key_1));
+        let pubkey_c = convert_char_to_str(get_my_pubkey(secret_key_2));
+        let pubkeys = pubkey_a.clone() + &pubkey_b + &pubkey_c;
         let pubkeys = CString::new(pubkeys.as_str()).unwrap().into_raw();
-        let pubkeys_ab = PUBLICA.to_owned() + PUBLICB;
+        let pubkeys_ab = pubkey_a + &pubkey_b;
         let pubkeys_ab = CString::new(pubkeys_ab.as_str()).unwrap().into_raw();
         let ab_agg = get_key_agg(pubkeys_ab);
+        let tt = convert_char_to_str(ab_agg);
         let control = convert_char_to_str(generate_control_block(pubkeys, 2, ab_agg));
-        assert_eq!("3870f07f65eb0f65e13cb53910966ea5fc7adad570d103a1e992b98e376c95420cddec2ff39d01b800a7b10550f553ffc02a749edb5fc43d9943818b3263c859", control);
+        assert_eq!("fa87fe21ee5bd74aa18a83b3c182f021f3154f93dbb41f238b8c4e540c626140461222205b7b12a3ab413e75d91d4c385c1f018c9fb77c342409a85f50b27634", control);
     }
 }

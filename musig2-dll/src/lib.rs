@@ -557,12 +557,9 @@ mod tests {
 
     #[test]
     fn generate_mulsig_pubkey_should_work() {
-        let privkey_a = CString::new(PRIVATEA).unwrap().into_raw();
-        let privkey_b = CString::new(PRIVATEB).unwrap().into_raw();
-        let privkey_c = CString::new(PRIVATEC).unwrap().into_raw();
-        let pubkey_a = get_my_pubkey(privkey_a);
-        let pubkey_b = get_my_pubkey(privkey_b);
-        let pubkey_c = get_my_pubkey(privkey_c);
+        let pubkey_a = CString::new("0483f579dd2380bd31355d066086e1b4d46b518987c1f8a64d4c0101560280eae2b16f3068e94333e11ee63770936eca9692a25f76012511d38ac30ece20f07dca").unwrap().into_raw();
+        let pubkey_b = CString::new("047a0868a14bd18e2e45ff3ad960f892df8d0edd1a5685f0a1dc63c7986d4ad55d47c09531e4f2ca2ae7f9ed80c1f9df2edd8afa19188692724d2bc18c18d98c10").unwrap().into_raw();
+        let pubkey_c = CString::new("04c9929543dfa1e0bb84891acd47bfa6546b05e26b7a04af8eb6765fcc969d565faced14acb5172ee19aee5417488fecdda33f4cfea9ff04f250e763e6f7458d5e").unwrap().into_raw();
         let pubkeys = bytes_to_c_char(
             [
                 c_char_to_r_bytes(pubkey_a).unwrap(),
@@ -573,9 +570,9 @@ mod tests {
         )
         .unwrap();
         let network = CString::new("mainnet").unwrap().into_raw();
-        let multi_pubkey = convert_char_to_str(generate_threshold_pubkey(pubkeys, 3, network));
+        let multi_pubkey = convert_char_to_str(generate_threshold_pubkey(pubkeys, 2, network));
         assert_eq!(
-            "bc1px5h88hgn9l8txtzgx20mk65s7ka0zgdx6txyptlqy9af0mhrdjkqq9z97r",
+            "bc1pn202yeugfa25nssxk2hv902kmxrnp7g9xt487u256n20jgahuwas6syxhp",
             multi_pubkey
         );
     }

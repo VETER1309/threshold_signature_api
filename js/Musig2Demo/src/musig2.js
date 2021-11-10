@@ -42,7 +42,7 @@ console.log("signature: ", signature)
 console.log("pubkey: ", pubkey)
 
 let pubkeyAB = getAggPublicKey([pubkeyA, pubkeyB])
-let threshold_pubkey = generateThresholdPubkey([pubkeyA, pubkeyB, pubkeyC], 2);
+let threshold_pubkey = generateThresholdPubkey([pubkeyA, pubkeyB, pubkeyC], 2, "mainnet");
 let control_block = generateControlBlock([pubkeyA, pubkeyB, pubkeyC], 2, pubkeyAB)
 console.log("threshold_pubkey:", threshold_pubkey)
 console.log("control_block:", control_block)

@@ -10,7 +10,7 @@ const lib = ffi.Library(lib_path, {
     get_round2_msg: ['string', ['pointer', 'string', 'string', 'string', 'string']],
     get_signature: ['string', ['string']],
     get_key_agg: ['string', ['string']],
-    generate_threshold_pubkey: ['string', ['string', 'uint8']],
+    generate_threshold_pubkey: ['string', ['string', 'uint8', 'string']],
     generate_control_block: ['string', ['string', 'uint8', 'string']],
 });
 
@@ -46,8 +46,8 @@ getAggSignature = function (receivedRound2Msgs) {
     return lib.get_signature(receivedRound2Msgs.join(""))
 }
 
-generateThresholdPubkey = function (pubkeys, threshold) {
-    return lib.generate_threshold_pubkey(pubkeys.join(""), threshold)
+generateThresholdPubkey = function (pubkeys, threshold, network) {
+    return lib.generate_threshold_pubkey(pubkeys.join(""), threshold, network)
 }
 
 generateControlBlock = function (pubkeys, threshold, aggPubkey) {
@@ -66,5 +66,3 @@ module.exports = {
     generateThresholdPubkey,
     generateControlBlock,
 }
-
-

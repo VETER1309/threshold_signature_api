@@ -539,10 +539,6 @@ mod tests {
         "shrug argue supply evolve alarm caught swamp tissue hollow apology youth ethics";
     const PHRASE2: &str =
         "awesome beef hill broccoli strike poem rebel unique turn circle cool system";
-    const PUBLICA: &str = "005431ba274d567440f1da2fc4b8bc37e90d8155bf158966907b3f67a9e13b2d";
-    const PUBLICB: &str = "90b0ae8d9be3dab2f61595eb357846e98c185483aff9fa211212a87ad18ae547";
-    const PUBLICC: &str = "66768a820dd1e686f28167a572f5ea1acb8c3162cb33f0d4b2b6bee287742415";
-    const PUBLICAB: &str = "7c9a72882718402bf909b3c1693af60501c7243d79ecc8cf030fa253eb136861";
     const MESSAGE: u32 = 666666;
 
     fn convert_char_to_str(c: *mut c_char) -> String {
@@ -603,23 +599,42 @@ mod tests {
 
     #[test]
     fn generate_mulsig_pubkey_should_work() {
-        let pubkeys = PUBLICA.to_owned() + PUBLICB + PUBLICC;
+        let phrase_0 = CString::new(PHRASE0).unwrap().into_raw();
+        let phrase_1 = CString::new(PHRASE1).unwrap().into_raw();
+        let phrase_2 = CString::new(PHRASE2).unwrap().into_raw();
+        let secret_key_0 = get_my_privkey(phrase_0);
+        let secret_key_1 = get_my_privkey(phrase_1);
+        let secret_key_2 = get_my_privkey(phrase_2);
+        let pubkey_a = convert_char_to_str(get_my_pubkey(secret_key_0));
+        let pubkey_b = convert_char_to_str(get_my_pubkey(secret_key_1));
+        let pubkey_c = convert_char_to_str(get_my_pubkey(secret_key_2));
+        let pubkeys = pubkey_a.clone() + &pubkey_b + &pubkey_c;
         let pubkeys = CString::new(pubkeys.as_str()).unwrap().into_raw();
 
         let multi_pubkey = convert_char_to_str(generate_threshold_pubkey(pubkeys, 3));
         assert_eq!(
-            "c234f99695aab8fc33c1ccff8ae43e1b767f28a317d255922c8d708d62af7a0f",
+            "54f0f5b45dbf83059ccfb9fd9a28f6ed479018bd99bd6d8ae491fc804f657506",
             multi_pubkey
         );
     }
 
     #[test]
     fn generate_control_block_should_work() {
-        let pubkeys = PUBLICA.to_owned() + PUBLICB + PUBLICC;
+        let phrase_0 = CString::new(PHRASE0).unwrap().into_raw();
+        let phrase_1 = CString::new(PHRASE1).unwrap().into_raw();
+        let phrase_2 = CString::new(PHRASE2).unwrap().into_raw();
+        let secret_key_0 = get_my_privkey(phrase_0);
+        let secret_key_1 = get_my_privkey(phrase_1);
+        let secret_key_2 = get_my_privkey(phrase_2);
+        let pubkey_a = convert_char_to_str(get_my_pubkey(secret_key_0));
+        let pubkey_b = convert_char_to_str(get_my_pubkey(secret_key_1));
+        let pubkey_c = convert_char_to_str(get_my_pubkey(secret_key_2));
+        let pubkeys = pubkey_a.clone() + &pubkey_b + &pubkey_c;
         let pubkeys = CString::new(pubkeys.as_str()).unwrap().into_raw();
-
-        let ab_agg = CString::new(PUBLICAB).unwrap().into_raw();
-        let control = convert_char_to_str(generate_control_block(pubkeys, 2, ab_agg));
-        assert_eq!("881102cd9cf2ee389137a99a2ad88447b9e8b60c350cda71aff049233574c7680bac21362eecf9223bc477d6dfbbe02066a911eba752faedb26d881c466ea80fe17a23050f6f6db2f4218ce9f7c14edd21c5f24818157103c5a8524d7014c0dd", control);
+        let pubkeys_ab = pubkey_a + &pubkey_b+&pubkey_c;
+        let pubkeys_ab = CString::new(pubkeys_ab.as_str()).unwrap().into_raw();
+        let ab_agg = get_agg_pubkey(pubkeys_ab);
+        let control = convert_char_to_str(generate_control_block(pubkeys, 3, ab_agg));
+        assert_eq!("1698edf8f66afe1f1fefc6f50800ae303af24407458a6d144e7da6b8954f166a", control);
     }
 }

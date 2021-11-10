@@ -7,7 +7,7 @@ This is the js version of musig api. Mainly to facilitate the construction of th
 ~~~json
 {
   "dependencies": {
-    "musig": "1.7.0"
+    "musig": "1.8.0"
   }
 }
 ~~~

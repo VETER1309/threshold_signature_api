@@ -606,9 +606,9 @@ mod tests {
         let pubkeys = PUBLICA.to_owned() + PUBLICB + PUBLICC;
         let pubkeys = CString::new(pubkeys.as_str()).unwrap().into_raw();
 
-        let multi_pubkey = convert_char_to_str(generate_threshold_pubkey(pubkeys, 2));
+        let multi_pubkey = convert_char_to_str(generate_threshold_pubkey(pubkeys, 3));
         assert_eq!(
-            "d637ab113200c61d0188b6039de9738baa65d3e4f0d9f463a7aef8038c964021",
+            "c234f99695aab8fc33c1ccff8ae43e1b767f28a317d255922c8d708d62af7a0f",
             multi_pubkey
         );
     }

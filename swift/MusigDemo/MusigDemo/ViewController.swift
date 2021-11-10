@@ -44,7 +44,7 @@ class ViewController: UIViewController {
         let pubkeyb = "90b0ae8d9be3dab2f61595eb357846e98c185483aff9fa211212a87ad18ae547"
         let pubkeyc = "66768a820dd1e686f28167a572f5ea1acb8c3162cb33f0d4b2b6bee287742415"
         let pubkeyab = "7c9a72882718402bf909b3c1693af60501c7243d79ecc8cf030fa253eb136861"
-        let threshold_pubkey = generateThresholdPubkey(pubkeys: [pubkeya, pubkeyb, pubkeyc], threshold: 2);
+        let threshold_pubkey = generateThresholdPubkey(pubkeys: [pubkeya, pubkeyb, pubkeyc], threshold: 3);
         let control_block = generateControlBlock(pubkeys: [pubkeya, pubkeyb, pubkeyc], threshold: 2, agg_pubkey: pubkeyab)
         print("threshold_pubkey:", threshold_pubkey)
         print("control_block:", control_block)

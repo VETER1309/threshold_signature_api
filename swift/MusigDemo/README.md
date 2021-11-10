@@ -6,7 +6,7 @@ This is an example of using musig as an aar package. Some help for building a th
 
 Import package
 
-`File>Add Packages>Github` search https://github.com/AAweidai/Musig, as shown in the figure below. The current version is **1.7.0**.
+`File>Add Packages>Github` search https://github.com/AAweidai/Musig, as shown in the figure below. The current version is **1.8.0**.
 
 ![](https://cdn.jsdelivr.net/gh/AAweidai/PictureBed@master/taproot/16364537404401636453740335.png)
 

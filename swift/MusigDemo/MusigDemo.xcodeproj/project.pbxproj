@@ -649,8 +649,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/AAweidai/Musig";
 			requirement = {
-				kind = upToNextMinorVersion;
-				minimumVersion = 1.7.0;
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.8.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

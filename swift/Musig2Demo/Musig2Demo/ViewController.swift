@@ -39,7 +39,7 @@ class ViewController: UIViewController {
         print("pubkey:", pubkey)
         
         let pubkey01 = getAggPublicKey(pubkeys: [pubkey0, pubkey1])
-        let threshold_pubkey = generateThresholdPubkey(pubkeys: [pubkey0, pubkey1, pubkey2], threshold: 2);
+        let threshold_pubkey = generateThresholdPubkey(pubkeys: [pubkey0, pubkey1, pubkey2], threshold: 2, network: "mainnet");
         let control_block = generateControlBlock(pubkeys: [pubkey0, pubkey1, pubkey2], threshold: 2, agg_pubkey: pubkey01)
         print("threshold_pubkey:", threshold_pubkey)
         print("control_block:", control_block)

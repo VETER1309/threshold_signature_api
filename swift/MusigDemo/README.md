@@ -4,11 +4,9 @@ This is an example of using musig as an aar package. Some help for building a th
 
 # Dependencies
 
-Import package
+Step 1. Import package
 
-`File>Add Packages>Github` search https://github.com/AAweidai/Musig, as shown in the figure below. The current version is **1.8.0**.
-
-![](https://cdn.jsdelivr.net/gh/AAweidai/PictureBed@master/taproot/16364537404401636453740335.png)
+`File>Add Packages>Github` search https://github.com/chainx-org/musig-ios-api. The current version is **1.8.0**.
 
 Step 2. Import
 ```

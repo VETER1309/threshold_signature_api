@@ -4,11 +4,9 @@ This is an example of using musig2 api for btc. Some help for building a thresho
 
 # Dependencies
 
-Import package
+Step 1. Import package
 
-`File>Add Packages>Github` search https://github.com/AAweidai/Musig2, as shown in the figure below. The current version is **1.2.0**.
-
-![](https://cdn.jsdelivr.net/gh/AAweidai/PictureBed@master/taproot/16329983286771632998328618.png)
+`File>Add Packages>Github` search https://github.com/chainx-org/musig2-ios-api . The current version is **1.2.0**.
 
 Step 2. Import
 ```

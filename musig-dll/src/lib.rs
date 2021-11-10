@@ -680,7 +680,7 @@ pub extern "C" fn generate_threshold_pubkey(pubkeys: *const c_char, threshold: u
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Musig_generate_1threshold_1pubkey(
+pub extern "system" fn Java_com_chainx_musig_Mast_generate_1threshold_1pubkey(
     env: JNIEnv,
     _class: JClass,
     pubkeys: JString,
@@ -730,7 +730,7 @@ pub extern "C" fn generate_control_block(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig_Musig_generate_1control_1block(
+pub extern "system" fn Java_com_chainx_musig_Mast_generate_1control_1block(
     env: JNIEnv,
     _class: JClass,
     pubkeys: JString,

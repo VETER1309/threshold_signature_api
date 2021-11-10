@@ -16,6 +16,7 @@ public class MainActivity extends AppCompatActivity {
     final static String publicB = "90b0ae8d9be3dab2f61595eb357846e98c185483aff9fa211212a87ad18ae547";
     final static String publicC = "66768a820dd1e686f28167a572f5ea1acb8c3162cb33f0d4b2b6bee287742415";
     final static String publicAB = "7c9a72882718402bf909b3c1693af60501c7243d79ecc8cf030fa253eb136861";
+    final static long message = 666666;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,12 +24,12 @@ public class MainActivity extends AppCompatActivity {
         String private2 = Musig.getMyPrivkey(phrase2);
         String private3 = Musig.getMyPrivkey(phrase3);
 
-        long musig0 = Musig.getMusig(private1);
+        long musig0 = Musig.getMusig(message, private1);
         String encodeMusig0 = Musig.encodeRevealStage(musig0);
         musig0 = Musig.decodeRevealStage(encodeMusig0);
 
-        long musig1 = Musig.getMusig(private2);
-        long musig2 = Musig.getMusig(private3);
+        long musig1 = Musig.getMusig(message, private2);
+        long musig2 = Musig.getMusig(message, private3);
 
         String pubkey0 = Musig.getMyPubkey(private1);
         String pubkey1 = Musig.getMyPubkey(private2);
@@ -45,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
         String cosign2 = Musig.getMyCosign(musig2, new String[]{reveal0, reveal1},
                 new String[]{pubkey0, pubkey1});
 
-        String signature = Musig.getAggSignature(new String[]{reveal0, reveal1, reveal2},
+        String signature = Musig.getAggSignature(message, new String[]{reveal0, reveal1, reveal2},
                 new String[]{cosign0, cosign1, cosign2},
                 new String[]{pubkey0, pubkey1, pubkey2});
 

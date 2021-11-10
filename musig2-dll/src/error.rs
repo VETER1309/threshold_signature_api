@@ -4,7 +4,7 @@ use std::{
 };
 
 use hex::FromHexError;
-use mast::error::MastError;
+use light_bitcoin::mast::error::MastError;
 
 #[derive(Debug)]
 pub enum Error {

@@ -7,7 +7,7 @@ use std::{
 
 use self::error::Error;
 use libc::c_char;
-use mast::Mast;
+use light_bitcoin::mast::Mast;
 use musig2::{sign_double_prime, KeyAgg, KeyPair, Nv, PrivateKey, PublicKey, State, StatePrime};
 
 const PUBLICKEY_NORMAL_SIZE: usize = 65;
@@ -331,8 +331,12 @@ pub fn c_char_to_r_bytes(char: *const c_char) -> Result<Vec<u8>, Error> {
 /// Returns: String. Return the public key of the threshold-signature address.
 /// Possible error string returned is `Invalid Public Bytes`.
 #[no_mangle]
-pub extern "C" fn generate_threshold_pubkey(pubkeys: *const c_char, threshold: u8) -> *mut c_char {
-    match r_generate_tweak_pubkey(pubkeys, threshold as usize) {
+pub extern "C" fn generate_threshold_pubkey(
+    pubkeys: *const c_char,
+    threshold: u8,
+    network: *const c_char,
+) -> *mut c_char {
+    match r_generate_tweak_pubkey(pubkeys, threshold as usize, network) {
         Ok(pubkey) => pubkey,
         Err(_) => Error::InvalidPublicBytes.into(),
     }
@@ -341,9 +345,17 @@ pub extern "C" fn generate_threshold_pubkey(pubkeys: *const c_char, threshold: u
 pub fn r_generate_tweak_pubkey(
     pubkeys: *const c_char,
     threshold: usize,
+    network: *const c_char,
 ) -> Result<*mut c_char, Error> {
     let mast = r_get_my_mast(pubkeys, threshold)?;
-    let tweak = mast.generate_tweak_pubkey()?;
+    let network = unsafe {
+        if network.is_null() {
+            return Err(Error::NormalError);
+        }
+        CStr::from_ptr(network)
+    };
+    let network = network.to_str()?;
+    let tweak = mast.generate_address(network)?;
     let c_tweak_str = CString::new(tweak)?;
     Ok(c_tweak_str.into_raw())
 }
@@ -426,12 +438,11 @@ pub fn r_get_my_mast(pubkeys: *const c_char, threshold: usize) -> Result<Mast, E
 
 #[cfg(test)]
 mod tests {
+    use musig2::{verify, Signature};
     use std::convert::TryFrom;
 
-    use libsecp256k1::Message;
-    use musig2::{verify, Signature};
-
     use super::*;
+    use secp256k1::Message;
 
     const PRIVATEA: &str = "5495822c4f8efbe17b9bae42a85e8998baec458f3824440d1ce8d9357ad4a7b7";
     const PRIVATEB: &str = "cef4bbc9689812098c379bec0bb063a895916008344ca04cddbd21ccbcce3bcf";
@@ -561,10 +572,10 @@ mod tests {
             .concat(),
         )
         .unwrap();
-
-        let multi_pubkey = convert_char_to_str(generate_threshold_pubkey(pubkeys, 2));
+        let network = CString::new("mainnet").unwrap().into_raw();
+        let multi_pubkey = convert_char_to_str(generate_threshold_pubkey(pubkeys, 3, network));
         assert_eq!(
-            "bc1p297wygd7g3fwsjt80spqjsg8ydhjvq8ccr3a3xexhq8y3tsl0srqypr7zf",
+            "bc1px5h88hgn9l8txtzgx20mk65s7ka0zgdx6txyptlqy9af0mhrdjkqq9z97r",
             multi_pubkey
         );
     }
@@ -597,6 +608,6 @@ mod tests {
         let ab_agg = get_key_agg(pubkeys_ab);
         let control =
             hex::encode(&c_char_to_r_bytes(generate_control_block(pubkeys, 2, ab_agg)).unwrap());
-        assert_eq!("e9767f9fc30376efc53167707a4ceb905391be7ce971df6493942e1d008e0a7a9aaa5790c2bc7c2095f50c2b7d9c2fc9ba595352599a38b944bece8ea8b10141ddb1f00c976e5352a16f06008a1066bc30ecdca1196ab41c3447345d70b6da16", control);
+        assert_eq!("e9767f9fc30376efc53167707a4ceb905391be7ce971df6493942e1d008e0a7ab0634f733e7b963edc28cc80fdfe4a98149689dea232b4587d2e3f572c0e766c9bdd6ce39048cd115b8fbc39dce888f8bfb5fd16e5649ae6b4b6b81592f53873", control);
     }
 }

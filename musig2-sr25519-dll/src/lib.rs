@@ -612,7 +612,6 @@ mod tests {
         let pubkeys_ab = pubkey_a + &pubkey_b;
         let pubkeys_ab = CString::new(pubkeys_ab.as_str()).unwrap().into_raw();
         let ab_agg = get_key_agg(pubkeys_ab);
-        let tt = convert_char_to_str(ab_agg);
         let control = convert_char_to_str(generate_control_block(pubkeys, 2, ab_agg));
         assert_eq!("fa87fe21ee5bd74aa18a83b3c182f021f3154f93dbb41f238b8c4e540c626140461222205b7b12a3ab413e75d91d4c385c1f018c9fb77c342409a85f50b27634", control);
     }

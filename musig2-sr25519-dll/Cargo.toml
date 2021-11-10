@@ -6,8 +6,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-#  crate-type = ["lib", "staticlib"]
-crate-type = ["lib", "cdylib"]
+  crate-type = ["lib", "staticlib"]
+#crate-type = ["lib", "cdylib"]
 
 [dependencies]
 mast = { git = "https://github.com/chainx-org/mast", branch = "sr25519" }

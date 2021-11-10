@@ -31,7 +31,7 @@ public func decodeRound1State(round1_state:String) -> OpaquePointer?{
     return decode_round1_state(round1_state)
 }
 
-public func getRound2Msg(state:OpaquePointer?, msg:String, priv:String, pubkeys:[String], received_round1_msg:[String]) -> String{
+public func getRound2Msg(state:OpaquePointer?, msg:UInt32, priv:String, pubkeys:[String], received_round1_msg:[String]) -> String{
     return String.init(cString:get_round2_msg(state, msg, priv, pubkeys.joined(separator: ""), received_round1_msg.joined(separator: "")))
 }
 

@@ -16,7 +16,7 @@ class ViewController: UIViewController {
         let phrase0 = "flame flock chunk trim modify raise rough client coin busy income smile"
         let phrase1 = "shrug argue supply evolve alarm caught swamp tissue hollow apology youth ethics"
         let phrase2 = "awesome beef hill broccoli strike poem rebel unique turn circle cool system"
-        let msg = "576520617265206c6567696f6e21"
+        let msg: UInt32 = 666666
         let private0 = getMyPrivkey(phrase: phrase0)
         let private1 = getMyPrivkey(phrase: phrase1)
         let private2 = getMyPrivkey(phrase: phrase2)

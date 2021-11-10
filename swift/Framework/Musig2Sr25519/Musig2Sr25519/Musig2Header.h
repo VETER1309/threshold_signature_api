@@ -26,7 +26,7 @@ State *decode_round1_state(const char *round1_state);
 
 char *get_round1_msg(State *state);
 
-char *get_round2_msg(State *state, const char *msg, const char *privkey, const char *pubkeys, const char * received_round1_msg);
+char *get_round2_msg(State *state, uint32_t message, const char *privkey, const char *pubkeys, const char * received_round1_msg);
 
 char *get_signature(const char *round2_msg);
 

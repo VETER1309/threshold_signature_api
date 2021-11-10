@@ -6,7 +6,7 @@ This is the js version of musig2 api for sr25519. Mainly to facilitate the const
 
 Import package
 
-`File>Add Packages>Github` search https://github.com/AAweidai/Musig2Sr25519, as shown in the figure below. The current version is **1.0.0**.
+`File>Add Packages>Github` search https://github.com/AAweidai/Musig2Sr25519, as shown in the figure below. The current version is **1.1.0**.
 
 ![](https://cdn.jsdelivr.net/gh/AAweidai/PictureBed@master/taproot/16329983286771632998328618.png)
 
@@ -66,7 +66,7 @@ Returns: State.
 Failure will return a null pointer.
 ```
 
-**getRound2Msg(state, msg, privkey, pubkeys, received_round1_msg)**
+**getRound2Msg(state, message, privkey, pubkeys, received_round1_msg)**
 
 ```java
 It takes a lot of preparation to switch to round2 state(StatePrime). You need the round1 State, the message to sign for it, your own private key, everyone's public key, and everyone else's msgs from the round1.

@@ -18,7 +18,7 @@ allprojects {
 Step 2. Add the dependency
 ```
 dependencies {
-	        implementation 'com.github.hacpy:musig:1.6.1'
+	        implementation 'com.github.chainx-org:musig-android-api:1.6.1'
 	}
 ```
 

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		78887A94273BB7F6009DAD30 /* Musig2 in Frameworks */ = {isa = PBXBuildFile; productRef = 78887A93273BB7F6009DAD30 /* Musig2 */; };
 		78AF05A52719E42F00C5225A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78AF05A42719E42F00C5225A /* AppDelegate.swift */; };
 		78AF05A72719E42F00C5225A /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78AF05A62719E42F00C5225A /* SceneDelegate.swift */; };
 		78AF05A92719E42F00C5225A /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78AF05A82719E42F00C5225A /* ViewController.swift */; };
@@ -69,6 +70,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				78887A94273BB7F6009DAD30 /* Musig2 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -158,6 +160,7 @@
 			);
 			name = Musig2Demo;
 			packageProductDependencies = (
+				78887A93273BB7F6009DAD30 /* Musig2 */,
 			);
 			productName = Musig2Demo;
 			productReference = 78AF05A12719E42F00C5225A /* Musig2Demo.app */;
@@ -232,6 +235,7 @@
 			);
 			mainGroup = 78AF05982719E42F00C5225A;
 			packageReferences = (
+				78887A92273BB7F6009DAD30 /* XCRemoteSwiftPackageReference "musig2-ios-api" */,
 			);
 			productRefGroup = 78AF05A22719E42F00C5225A /* Products */;
 			projectDirPath = "";
@@ -640,6 +644,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		78887A92273BB7F6009DAD30 /* XCRemoteSwiftPackageReference "musig2-ios-api" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/chainx-org/musig2-ios-api";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		78887A93273BB7F6009DAD30 /* Musig2 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 78887A92273BB7F6009DAD30 /* XCRemoteSwiftPackageReference "musig2-ios-api" */;
+			productName = Musig2;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 78AF05992719E42F00C5225A /* Project object */;
 }

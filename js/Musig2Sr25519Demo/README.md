@@ -7,7 +7,7 @@ This is the js version of musig2 api for sr25519. Mainly to facilitate the const
 ~~~json
 {
   "dependencies": {
-    "musig2-sr25519": "1.0.0"
+    "musig2-sr25519": "1.1.0"
   }
 }
 ~~~

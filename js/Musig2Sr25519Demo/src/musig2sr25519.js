@@ -15,7 +15,7 @@ const {
 const phraseA = "flame flock chunk trim modify raise rough client coin busy income smile"
 const phraseB = "shrug argue supply evolve alarm caught swamp tissue hollow apology youth ethics"
 const phraseC = "awesome beef hill broccoli strike poem rebel unique turn circle cool system"
-const msg = "b9b74d5852010cc4bf1010500ae6a97eca7868c9779d50c60fb4ae568b01ea38"
+const message = 666666;
 
 let privateA = getMyPrivkey(phraseA)
 let privateB = getMyPrivkey(phraseB)
@@ -36,9 +36,9 @@ let round1MsgA = getRound1Msg(round1StateA)
 let round1MsgB = getRound1Msg(round1StateB)
 let round1MsgC = getRound1Msg(round1StateC)
 
-let round2MsgA = getRound2Msg(round1StateA, msg, privateA, [pubkeyA, pubkeyB, pubkeyC], [round1MsgB, round1MsgC])
-let round2MsgB = getRound2Msg(round1StateB, msg, privateB, [pubkeyA, pubkeyB, pubkeyC], [round1MsgA, round1MsgC])
-let round2MsgC = getRound2Msg(round1StateC, msg, privateC, [pubkeyA, pubkeyB, pubkeyC], [round1MsgB, round1MsgA])
+let round2MsgA = getRound2Msg(round1StateA, message, privateA, [pubkeyA, pubkeyB, pubkeyC], [round1MsgB, round1MsgC])
+let round2MsgB = getRound2Msg(round1StateB, message, privateB, [pubkeyA, pubkeyB, pubkeyC], [round1MsgA, round1MsgC])
+let round2MsgC = getRound2Msg(round1StateC, message, privateC, [pubkeyA, pubkeyB, pubkeyC], [round1MsgB, round1MsgA])
 
 let signature = getAggSignature([round2MsgA, round2MsgB, round2MsgC])
 let pubkey = getAggPublicKey([pubkeyA, pubkeyB, pubkeyC])

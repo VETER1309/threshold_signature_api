@@ -8,7 +8,7 @@ const lib = ffi.Library(lib_path, {
     encode_round1_state: ['string', ['pointer']],
     decode_round1_state: ['pointer', ['string']],
     get_round1_msg: ['string', ['pointer']],
-    get_round2_msg: ['string', ['pointer', 'string', 'string', 'string', 'string']],
+    get_round2_msg: ['string', ['pointer', 'uint32', 'string', 'string', 'string']],
     get_signature: ['string', ['string']],
     get_key_agg: ['string', ['string']],
     generate_threshold_pubkey: ['string', ['string', 'uint8']],
@@ -72,5 +72,3 @@ module.exports = {
     generateThresholdPubkey,
     generateControlBlock,
 }
-
-

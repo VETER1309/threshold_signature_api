@@ -8,14 +8,13 @@ use jni::JNIEnv;
 // They carry extra lifetime information to prevent them escaping this context
 // and getting used after being GC'd.
 use jni::objects::{JClass, JString};
-
 // This is just a pointer. We'll be returning it from our function.
 // We can't return one of the objects with lifetime information because the
 // lifetime checker won't let us.
 use jni::sys::{jint, jlong, jstring};
 
 use self::error::Error;
-use mast::Mast;
+use light_bitcoin::mast::Mast;
 use musig2::{sign_double_prime, KeyAgg, KeyPair, Nv, PrivateKey, PublicKey, State, StatePrime};
 
 const PUBLICKEY_NORMAL_SIZE: usize = 65;
@@ -97,7 +96,10 @@ pub fn r_get_key_agg(env: JNIEnv, pubkeys: JString) -> Result<jstring, Error> {
 /// Returns: [`State`] Pointer.
 /// If the calculation fails just a null pointer will be returned.
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig2_Musig2_get_1round1_1state(_env: JNIEnv, _class: JClass) -> jlong {
+pub extern "system" fn Java_com_chainx_musig2_Musig2_get_1round1_1state(
+    _env: JNIEnv,
+    _class: JClass,
+) -> jlong {
     match r_get_round1_state() {
         Ok(s) => s,
         Err(_) => jlong::default(),
@@ -379,8 +381,9 @@ pub extern "system" fn Java_com_chainx_musig2_Mast_generate_1threshold_1pubkey(
     _class: JClass,
     pubkeys: JString,
     threshold: jint,
+    network: JString,
 ) -> jstring {
-    match r_generate_tweak_pubkey(env, pubkeys, threshold as usize) {
+    match r_generate_tweak_pubkey(env, pubkeys, threshold as usize, network) {
         Ok(pubkey) => pubkey,
         Err(_) => convert_string_to_jstring(env, Error::InvalidPublicBytes.into()),
     }
@@ -390,9 +393,14 @@ pub fn r_generate_tweak_pubkey(
     env: JNIEnv,
     pubkeys: JString,
     threshold: usize,
+    network: JString,
 ) -> Result<jstring, Error> {
     let mast = r_get_my_mast(env, pubkeys, threshold)?;
-    let tweak = mast.generate_tweak_pubkey()?;
+    let network: String = env
+        .get_string(network)
+        .map_err(|_| Error::NormalError)?
+        .into();
+    let tweak = mast.generate_address(&network)?;
     Ok(env
         .new_string(tweak)
         .map_err(|_| Error::InvalidPublicBytes)?

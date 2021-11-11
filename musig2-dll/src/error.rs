@@ -1,7 +1,7 @@
 use std::str::Utf8Error;
 
 use hex::FromHexError;
-use mast::error::MastError;
+use light_bitcoin::mast::error::MastError;
 
 #[derive(Debug)]
 #[allow(clippy::enum_variant_names)]

@@ -218,7 +218,7 @@ pub extern "system" fn Java_com_chainx_musig2_1sr25519_Musig2_get_1round2_1msg(
     env: JNIEnv,
     _class: JClass,
     round1_state: jlong,
-    message: JString,
+    message: jlong,
     privkey: JString,
     pubkeys: JString,
     received_round1_msg: JString,
@@ -239,7 +239,7 @@ pub extern "system" fn Java_com_chainx_musig2_1sr25519_Musig2_get_1round2_1msg(
 pub fn r_get_round2_msg(
     env: JNIEnv,
     round1_state: jlong,
-    message: JString,
+    message: jlong,
     privkey: JString,
     pubkeys: JString,
     received_round1_msg: JString,
@@ -261,13 +261,13 @@ pub fn r_get_round2_msg(
 #[allow(clippy::type_complexity)]
 pub fn round2_state_parse(
     env: JNIEnv,
-    message: JString,
+    message: jlong,
     privkey: JString,
     pubkeys: JString,
     received_round1_msg: JString,
 ) -> Result<(Transcript, Vec<PublicKey>, Keypair, Vec<Vec<PublicKey>>), Error> {
     // construct message
-    let message_bytes = c_char_to_r_bytes(env, message)?;
+    let message_bytes = (message as u32).to_be_bytes();
     let mut message = Transcript::new(b"SigningContext");
     message.append_message(b"", b"multi-sig");
     message.append_message(b"sign-bytes", &message_bytes);

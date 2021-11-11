@@ -12,7 +12,7 @@ public class MainActivity extends AppCompatActivity {
     final static String phrase2 = "shrug argue supply evolve alarm caught swamp tissue hollow apology youth ethics";
     final static String phrase3 = "awesome beef hill broccoli strike poem rebel unique turn circle cool system";
 
-    final static String msg = "b9b74d5852010cc4bf1010500ae6a97eca7868c9779d50c60fb4ae568b01ea38";
+    final static long msg = 666666;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

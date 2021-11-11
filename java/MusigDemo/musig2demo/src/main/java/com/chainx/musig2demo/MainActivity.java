@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
         System.out.println("pubkey: " + pubkey);
 
         String pubkeyAB = Musig2.getAggPublicKey(new String[]{pubkeyA, pubkeyB});
-        String thresholdPubkey = Mast.generateThresholdPubkey(pubkeys, (byte) 2);
+        String thresholdPubkey = Mast.generateThresholdPubkey(pubkeys, (byte) 2, "mainnet");
         String control = Mast.generateControlBlock(pubkeys, (byte) 2, pubkeyAB);
 
         System.out.println("thresholdPubkey:" + thresholdPubkey);

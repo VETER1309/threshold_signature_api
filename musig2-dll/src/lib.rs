@@ -7,7 +7,15 @@ use std::{
 
 use self::error::Error;
 use libc::c_char;
-use light_bitcoin::mast::Mast;
+use light_bitcoin::{
+    chain::{Bytes, OutPoint, Transaction, TransactionInput, TransactionOutput, H256},
+    keys::Address,
+    mast::Mast,
+    script::{
+        Builder, Opcode, Script, ScriptExecutionData, SignatureVersion, TransactionInputSigner,
+    },
+    serialization::{serialize_with_flags, SERIALIZE_TRANSACTION_WITNESS},
+};
 use musig2::{sign_double_prime, KeyAgg, KeyPair, Nv, PrivateKey, PublicKey, State, StatePrime};
 
 const PUBLICKEY_NORMAL_SIZE: usize = 65;
@@ -434,6 +442,216 @@ pub fn r_get_my_mast(pubkeys: *const c_char, threshold: usize) -> Result<Mast, E
     }
 
     Ok(Mast::new(pubkeys, threshold)?)
+}
+
+// Construct a base transaction
+pub fn r_get_base_tx() -> Result<*mut c_char, Error> {
+    let tx = Transaction {
+        version: 2,
+        inputs: vec![],
+        outputs: vec![],
+        lock_time: 0,
+    };
+
+    let tx_hex = hex::encode(serialize_with_flags(&tx, SERIALIZE_TRANSACTION_WITNESS));
+    let c_tx_str = CString::new(tx_hex)?;
+    Ok(c_tx_str.into_raw())
+}
+
+pub fn r_add_input(
+    base_tx: *const c_char,
+    txid: *const c_char,
+    index: u32,
+) -> Result<*mut c_char, Error> {
+    let (c_base_tx, c_txid) = unsafe {
+        if base_tx.is_null() {
+            return Err(Error::InvalidTransaction);
+        }
+
+        if txid.is_null() {
+            return Err(Error::InvalidTransaction);
+        }
+
+        (CStr::from_ptr(base_tx), CStr::from_ptr(txid))
+    };
+
+    let mut base_tx: Transaction = c_base_tx
+        .to_str()?
+        .parse()
+        .map_err(|_| Error::InvalidTransaction)?;
+
+    let r_txid = c_txid.to_bytes();
+    if r_txid.len() != 32 {
+        return Err(Error::InvalidTransaction);
+    }
+
+    let mut txid_bytes = [0u8; 32];
+    txid_bytes.copy_from_slice(&r_txid[0..32]);
+    let txid = H256(txid_bytes);
+
+    let input = TransactionInput {
+        previous_output: OutPoint { txid, index },
+        script_sig: Bytes::new(),
+        sequence: 0,
+        script_witness: vec![],
+    };
+
+    base_tx.inputs.push(input);
+    let tx_hex = hex::encode(serialize_with_flags(
+        &base_tx,
+        SERIALIZE_TRANSACTION_WITNESS,
+    ));
+    let c_tx_str = CString::new(tx_hex)?;
+    Ok(c_tx_str.into_raw())
+}
+
+pub fn r_add_output(
+    base_tx: *const c_char,
+    addr: *const c_char,
+    value: u64,
+) -> Result<*mut c_char, Error> {
+    let (c_base_tx, c_addr) = unsafe {
+        if base_tx.is_null() {
+            return Err(Error::InvalidTransaction);
+        }
+
+        if addr.is_null() {
+            return Err(Error::InvalidTransaction);
+        }
+
+        (CStr::from_ptr(base_tx), CStr::from_ptr(addr))
+    };
+
+    let mut base_tx: Transaction = c_base_tx
+        .to_str()?
+        .parse()
+        .map_err(|_| Error::InvalidTransaction)?;
+
+    let r_addr = c_addr.to_str()?;
+    let _addr: Address = r_addr.parse().map_err(|_| Error::InvalidTransaction)?;
+    // TODO: check the address type to compute script_pubkey
+    let script_pubkey = Bytes::default();
+
+    let output = TransactionOutput {
+        value,
+        script_pubkey,
+    };
+    base_tx.outputs.push(output);
+    let tx_hex = hex::encode(serialize_with_flags(
+        &base_tx,
+        SERIALIZE_TRANSACTION_WITNESS,
+    ));
+    let c_tx_str = CString::new(tx_hex)?;
+    Ok(c_tx_str.into_raw())
+}
+
+// Compute a signature hash for schnorr
+pub fn r_get_sighash(
+    prev_tx: *const c_char,
+    tx: *const c_char,
+    input_index: usize,
+) -> Result<*mut c_char, Error> {
+    let (c_prev_tx, c_tx) = unsafe {
+        if prev_tx.is_null() || tx.is_null() {
+            return Err(Error::InvalidTransaction);
+        }
+
+        (CStr::from_ptr(prev_tx), CStr::from_ptr(tx))
+    };
+
+    let prev_tx: Transaction = c_prev_tx
+        .to_str()?
+        .parse()
+        .map_err(|_| Error::InvalidTransaction)?;
+    let tx: Transaction = c_tx
+        .to_str()?
+        .parse()
+        .map_err(|_| Error::InvalidTransaction)?;
+
+    let signer: TransactionInputSigner = tx.into();
+    let mut execdata = ScriptExecutionData::default();
+
+    let script_pubkey: Script = prev_tx.outputs[input_index].script_pubkey.clone().into();
+    if !script_pubkey.is_pay_to_witness_taproot() {
+        return Err(Error::InvalidTaprootScript);
+    }
+    execdata.with_script(&script_pubkey);
+    let sighash = signer.signature_hash_schnorr(
+        input_index,
+        &[prev_tx.outputs[input_index].clone()],
+        SignatureVersion::TapScript,
+        0,
+        &execdata,
+    );
+    let sighash_hex = hex::encode(&sighash);
+    let c_sighash_str = CString::new(sighash_hex)?;
+    Ok(c_sighash_str.into_raw())
+}
+
+pub fn r_build_raw_tx(
+    base_tx: *const c_char,
+    signature: *const c_char,
+    agg_pubkey: *const c_char,
+    control: *const c_char,
+    input_index: usize,
+) -> Result<*mut c_char, Error> {
+    let (c_base_tx, c_signature, c_agg_pubkey, c_control) = unsafe {
+        if base_tx.is_null() {
+            return Err(Error::InvalidTransaction);
+        }
+
+        if signature.is_null() {
+            return Err(Error::InvalidTransaction);
+        }
+
+        if agg_pubkey.is_null() {
+            return Err(Error::InvalidTransaction);
+        }
+
+        if control.is_null() {
+            return Err(Error::InvalidTransaction);
+        }
+
+        (
+            CStr::from_ptr(base_tx),
+            CStr::from_ptr(signature),
+            CStr::from_ptr(agg_pubkey),
+            CStr::from_ptr(control),
+        )
+    };
+
+    let mut base_tx: Transaction = c_base_tx
+        .to_str()?
+        .parse()
+        .map_err(|_| Error::InvalidTransaction)?;
+
+    let signature = Bytes::from(c_signature.to_bytes());
+    let control = Bytes::from(c_control.to_bytes());
+
+    let agg_pubkey = c_agg_pubkey.to_bytes();
+    if agg_pubkey.len() != 65 {
+        return Err(Error::InvalidPublicBytes);
+    }
+    let mut keys = [0u8; PUBLICKEY_NORMAL_SIZE];
+    keys.copy_from_slice(&agg_pubkey[0..PUBLICKEY_NORMAL_SIZE]);
+    let pubkey = PublicKey::parse(&keys)?;
+
+    let script = Builder::default()
+        .push_bytes(&pubkey.x_coor().to_vec())
+        .push_opcode(Opcode::OP_CHECKSIG)
+        .into_script();
+
+    base_tx.inputs[input_index].script_witness.push(signature);
+    base_tx.inputs[input_index]
+        .script_witness
+        .push(script.to_bytes());
+    base_tx.inputs[input_index].script_witness.push(control);
+    let tx_hex = hex::encode(serialize_with_flags(
+        &base_tx,
+        SERIALIZE_TRANSACTION_WITNESS,
+    ));
+    let c_tx_str = CString::new(tx_hex)?;
+    Ok(c_tx_str.into_raw())
 }
 
 #[cfg(test)]

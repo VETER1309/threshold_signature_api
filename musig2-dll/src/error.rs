@@ -15,6 +15,10 @@ pub enum Error {
     NullRound1State,
     EncodeFail,
     InvalidPublicBytes,
+    // invalid tx
+    InvalidTransaction,
+    // invalid taproot script pubkey
+    InvalidTaprootScript,
 }
 
 impl From<Utf8Error> for Error {
@@ -66,6 +70,12 @@ impl From<Error> for *mut i8 {
             },
             Error::InvalidPublicBytes => unsafe {
                 CString::from_vec_unchecked(b"Invalid Public Bytes".to_vec()).into_raw()
+            },
+            Error::InvalidTransaction => unsafe {
+                CString::from_vec_unchecked(b"Invalid Transaction".to_vec()).into_raw()
+            },
+            Error::InvalidTaprootScript => unsafe {
+                CString::from_vec_unchecked(b"Invalid Taproot Script Pubkey".to_vec()).into_raw()
             },
         }
     }

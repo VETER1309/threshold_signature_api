@@ -619,11 +619,11 @@ pub fn r_add_output(
 pub extern "C" fn get_sighash(
     prev_tx: *const c_char,
     tx: *const c_char,
-    index: u32,
+    input_index: u32,
     agg_pubkey: *const c_char,
     sigversion: u32,
 ) -> *mut c_char {
-    match r_get_sighash(prev_tx, tx, index as usize, agg_pubkey, sigversion) {
+    match r_get_sighash(prev_tx, tx, input_index as usize, agg_pubkey, sigversion) {
         Ok(tx) => tx,
         Err(_) => Error::ComputeSighashFail.into(),
     }
@@ -711,9 +711,15 @@ pub extern "C" fn build_raw_scirpt_tx(
     agg_signature: *const c_char,
     agg_pubkey: *const c_char,
     control: *const c_char,
-    input_index: usize,
+    input_index: u32,
 ) -> *mut c_char {
-    match r_build_raw_scirpt_tx(base_tx, agg_signature, agg_pubkey, control, input_index) {
+    match r_build_raw_scirpt_tx(
+        base_tx,
+        agg_signature,
+        agg_pubkey,
+        control,
+        input_index as usize,
+    ) {
         Ok(tx) => tx,
         Err(_) => Error::ConstructTxFail.into(),
     }
@@ -783,9 +789,9 @@ pub fn r_build_raw_scirpt_tx(
 pub extern "C" fn build_raw_key_tx(
     base_tx: *const c_char,
     signature: *const c_char,
-    input_index: usize,
+    input_index: u32,
 ) -> *mut c_char {
-    match r_build_raw_key_tx(base_tx, signature, input_index) {
+    match r_build_raw_key_tx(base_tx, signature, input_index as usize) {
         Ok(tx) => tx,
         Err(_) => Error::ConstructTxFail.into(),
     }

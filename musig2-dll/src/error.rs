@@ -28,6 +28,8 @@ pub enum Error {
     InvalidTxid,
     // invaild signature
     InvalidSignature,
+    // invaild sigversion
+    InvalidSigversion,
 }
 
 impl From<Utf8Error> for Error {
@@ -94,6 +96,9 @@ impl From<Error> for *mut i8 {
             },
             Error::InvalidSignature => unsafe {
                 CString::from_vec_unchecked(b"Invalid Signature".to_vec()).into_raw()
+            },
+            Error::InvalidSigversion => unsafe {
+                CString::from_vec_unchecked(b"Invalid Sigversion".to_vec()).into_raw()
             },
         }
     }

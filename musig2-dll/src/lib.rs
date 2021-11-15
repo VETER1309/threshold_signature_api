@@ -522,16 +522,11 @@ pub fn r_add_output(
     addr: *const c_char,
     value: u64,
 ) -> Result<*mut c_char, Error> {
-    let (c_base_tx, c_addr) = unsafe {
-        if base_tx.is_null() {
-            return Err(Error::InvalidTransaction);
-        }
-
+    let c_base_tx = unsafe {
         if addr.is_null() {
             return Err(Error::InvalidAddr);
         }
-
-        (CStr::from_ptr(base_tx), CStr::from_ptr(addr))
+        CStr::from_ptr(base_tx)
     };
 
     let mut base_tx: Transaction = c_base_tx
@@ -539,11 +534,19 @@ pub fn r_add_output(
         .parse()
         .map_err(|_| Error::InvalidTransaction)?;
 
-    let r_addr = c_addr.to_str()?;
-
-    let addr: Address = r_addr.parse().map_err(|_| Error::InvalidAddr)?;
-
-    let script_pubkey: Bytes = Builder::build_address_types(&addr).into();
+    let script_pubkey: Bytes = if value > 0 {
+        let c_addr = unsafe {
+            if addr.is_null() {
+                return Err(Error::InvalidAddr);
+            }
+            CStr::from_ptr(addr)
+        };
+        let r_addr = c_addr.to_str()?;
+        let addr: Address = r_addr.parse().map_err(|_| Error::InvalidAddr)?;
+        Builder::build_address_types(&addr).into()
+    } else {
+        Builder::build_nulldata(&c_char_to_r_bytes(addr)?).into()
+    };
 
     let output = TransactionOutput {
         value,
@@ -563,6 +566,7 @@ pub fn r_get_sighash(
     prev_tx: *const c_char,
     tx: *const c_char,
     input_index: usize,
+    sigversion: u32,
 ) -> Result<*mut c_char, Error> {
     let (c_prev_tx, c_tx) = unsafe {
         if prev_tx.is_null() || tx.is_null() {
@@ -583,25 +587,36 @@ pub fn r_get_sighash(
 
     let signer: TransactionInputSigner = tx.into();
     let mut execdata = ScriptExecutionData::default();
-
-    let script_pubkey: Script = prev_tx.outputs[input_index].script_pubkey.clone().into();
-    if !script_pubkey.is_pay_to_witness_taproot() {
-        return Err(Error::InvalidTaprootScript);
-    }
-    execdata.with_script(&script_pubkey);
-    let sighash = signer.signature_hash_schnorr(
-        input_index,
-        &[prev_tx.outputs[input_index].clone()],
-        SignatureVersion::TapScript,
-        0,
-        &execdata,
-    );
+    let sighash = if sigversion == 1 {
+        let script_pubkey: Script = prev_tx.outputs[input_index].script_pubkey.clone().into();
+        if !script_pubkey.is_pay_to_witness_taproot() {
+            return Err(Error::InvalidTaprootScript);
+        }
+        execdata.with_script(&script_pubkey);
+        signer.signature_hash_schnorr(
+            input_index,
+            &[prev_tx.outputs[input_index].clone()],
+            SignatureVersion::TapScript,
+            0,
+            &execdata,
+        )
+    } else if sigversion == 0 {
+        signer.signature_hash_schnorr(
+            input_index,
+            &[prev_tx.outputs[input_index].clone()],
+            SignatureVersion::Taproot,
+            0,
+            &execdata,
+        )
+    } else {
+        return Err(Error::InvalidSigversion);
+    };
     let sighash_hex = hex::encode(&sighash);
     let c_sighash_str = CString::new(sighash_hex)?;
     Ok(c_sighash_str.into_raw())
 }
 
-pub fn r_build_raw_tx(
+pub fn r_build_raw_scirpt_tx(
     base_tx: *const c_char,
     agg_signature: *const c_char,
     agg_pubkey: *const c_char,
@@ -652,6 +667,38 @@ pub fn r_build_raw_tx(
     Ok(c_tx_str.into_raw())
 }
 
+pub fn r_build_raw_key_tx(
+    base_tx: *const c_char,
+    signature: *const c_char,
+    input_index: usize,
+) -> Result<*mut c_char, Error> {
+    let c_base_tx = unsafe {
+        if base_tx.is_null() {
+            return Err(Error::InvalidTransaction);
+        }
+        CStr::from_ptr(base_tx)
+    };
+    let mut base_tx: Transaction = c_base_tx
+        .to_str()?
+        .parse()
+        .map_err(|_| Error::InvalidTransaction)?;
+
+    let signature: Bytes = c_char_to_r_bytes(signature)?.into();
+
+    if signature.len() != 64 {
+        return Err(Error::InvalidSignature);
+    }
+
+    base_tx.inputs[input_index].script_witness.push(signature);
+
+    let tx_hex = hex::encode(serialize_with_flags(
+        &base_tx,
+        SERIALIZE_TRANSACTION_WITNESS,
+    ));
+    let c_tx_str = CString::new(tx_hex)?;
+    Ok(c_tx_str.into_raw())
+}
+
 #[cfg(test)]
 mod tests {
     use musig2::{verify, Signature};
@@ -664,8 +711,10 @@ mod tests {
     const PRIVATEB: &str = "a7150e8f24ab26ebebddd831aeb8f00ecb593df3b80ae1e8b8be01351805f2d6";
     const PRIVATEC: &str = "4a84a4601e463bc02dd0b8be03f3721187e9fc3105d5d5e8930ff3c8ca15cf40";
     const MESSAGE: &str = "b9b74d5852010cc4bf1010500ae6a97eca7868c9779d50c60fb4ae568b01ea38";
-    const WITHDRAW_TX_PREV: &str = "02000000000101aeee49e0bbf7a36f78ea4321b5c8bae0b8c72bdf2c024d2484b137fa7d0f8e1f01000000000000000003a0860100000000002251209a9ea267884f5549c206b2aec2bd56d98730f90532ea7f7154d4d4f923b7e3bb0000000000000000326a3035516a706f3772516e7751657479736167477a6334526a376f737758534c6d4d7141754332416255364c464646476a38801a060000000000225120c9929543dfa1e0bb84891acd47bfa6546b05e26b7a04af8eb6765fcc969d565f01409e325889515ed47099fdd7098e6fafdc880b21456d3f368457de923f4229286e34cef68816348a0581ae5885ede248a35ac4b09da61a7b9b90f34c200872d2e300000000";
-    const WITHDRAW_TX:  &str= "020000000001015fea22ec1a3e3e7e1167fa220cc8376225f07bd20aa194e7f3c4ac68c7375d8e0000000000000000000250c3000000000000225120c9929543dfa1e0bb84891acd47bfa6546b05e26b7a04af8eb6765fcc969d565f409c0000000000002251209a9ea267884f5549c206b2aec2bd56d98730f90532ea7f7154d4d4f923b7e3bb03402639d4d9882f6e7e42db38dbd2845c87b131737bf557643ef575c49f8fc6928869d9edf5fd61606fb07cced365fdc2c7b637e6ecc85b29906c16d314e7543e94222086a60c7d5dd3f4931cc8ad77a614402bdb591c042347c89281c48c7e9439be9dac61c0e56a1792f348690cdeebe60e3db6c4e94d94e742c619f7278e52f6cbadf5efe96a528ba3f61a5b0d4fbceea425a9028381458b32492bccc3f1faa473a649e23605554f5ea4b4044229173719228a35635eeffbd8a8fe526270b737ad523b99f600000000";
+    const WITHDRAW_SCRIPT_TX_PREV: &str = "02000000000101aeee49e0bbf7a36f78ea4321b5c8bae0b8c72bdf2c024d2484b137fa7d0f8e1f01000000000000000003a0860100000000002251209a9ea267884f5549c206b2aec2bd56d98730f90532ea7f7154d4d4f923b7e3bb0000000000000000326a3035516a706f3772516e7751657479736167477a6334526a376f737758534c6d4d7141754332416255364c464646476a38801a060000000000225120c9929543dfa1e0bb84891acd47bfa6546b05e26b7a04af8eb6765fcc969d565f01409e325889515ed47099fdd7098e6fafdc880b21456d3f368457de923f4229286e34cef68816348a0581ae5885ede248a35ac4b09da61a7b9b90f34c200872d2e300000000";
+    const WITHDRAW_SCRIPT_TX: &str = "020000000001015fea22ec1a3e3e7e1167fa220cc8376225f07bd20aa194e7f3c4ac68c7375d8e0000000000000000000250c3000000000000225120c9929543dfa1e0bb84891acd47bfa6546b05e26b7a04af8eb6765fcc969d565f409c0000000000002251209a9ea267884f5549c206b2aec2bd56d98730f90532ea7f7154d4d4f923b7e3bb03402639d4d9882f6e7e42db38dbd2845c87b131737bf557643ef575c49f8fc6928869d9edf5fd61606fb07cced365fdc2c7b637e6ecc85b29906c16d314e7543e94222086a60c7d5dd3f4931cc8ad77a614402bdb591c042347c89281c48c7e9439be9dac61c0e56a1792f348690cdeebe60e3db6c4e94d94e742c619f7278e52f6cbadf5efe96a528ba3f61a5b0d4fbceea425a9028381458b32492bccc3f1faa473a649e23605554f5ea4b4044229173719228a35635eeffbd8a8fe526270b737ad523b99f600000000";
+    const WITHDRAW_KEY_TX_PREV: &str = "020000000001014be640313b023c3c731b7e89c3f97bebcebf9772ea2f7747e5604f4483a447b601000000000000000002a0860100000000002251209a9ea267884f5549c206b2aec2bd56d98730f90532ea7f7154d4d4f923b7e3bbc027090000000000225120c9929543dfa1e0bb84891acd47bfa6546b05e26b7a04af8eb6765fcc969d565f01404dc68b31efc1468f84db7e9716a84c19bbc53c2d252fd1d72fa6469e860a74486b0990332b69718dbcb5acad9d48634d23ee9c215ab15fb16f4732bed1770fdf00000000";
+    const WITHDRAW_KEY_TX: &str = "02000000000101aeee49e0bbf7a36f78ea4321b5c8bae0b8c72bdf2c024d2484b137fa7d0f8e1f01000000000000000003a0860100000000002251209a9ea267884f5549c206b2aec2bd56d98730f90532ea7f7154d4d4f923b7e3bb0000000000000000326a3035516a706f3772516e7751657479736167477a6334526a376f737758534c6d4d7141754332416255364c464646476a38801a060000000000225120c9929543dfa1e0bb84891acd47bfa6546b05e26b7a04af8eb6765fcc969d565f01409e325889515ed47099fdd7098e6fafdc880b21456d3f368457de923f4229286e34cef68816348a0581ae5885ede248a35ac4b09da61a7b9b90f34c200872d2e300000000";
 
     fn convert_char_to_str(c: *mut c_char) -> String {
         let c_str = unsafe {
@@ -862,7 +911,7 @@ mod tests {
     }
 
     #[test]
-    fn generate_tx_should_work() {
+    fn generate_script_tx_should_work() {
         let txid = CString::new("8e5d37c768acc4f3e794a10ad27bf0256237c80c22fa67117e3e3e1aec22ea5f")
             .unwrap()
             .into_raw();
@@ -879,9 +928,9 @@ mod tests {
             .into_raw();
         let value: f32 = 0.0004 * 100_000_000f32;
         let base_tx = r_add_output(base_tx, addr, value as u64).unwrap();
-        let prev_tx = CString::new(WITHDRAW_TX_PREV).unwrap().into_raw();
+        let prev_tx = CString::new(WITHDRAW_SCRIPT_TX_PREV).unwrap().into_raw();
         let input_index = 0;
-        let sighash = r_get_sighash(prev_tx, base_tx, input_index).unwrap();
+        let sighash = r_get_sighash(prev_tx, base_tx, input_index, 1).unwrap();
 
         let msg = convert_char_to_str(sighash);
         let privs = vec![PRIVATEB, PRIVATEC];
@@ -923,7 +972,51 @@ mod tests {
         // The result of each signature is different
         // let sig = CString::new(hex::encode(signature.serialize())).unwrap().into_raw();
         let sig = CString::new("2639d4d9882f6e7e42db38dbd2845c87b131737bf557643ef575c49f8fc6928869d9edf5fd61606fb07cced365fdc2c7b637e6ecc85b29906c16d314e7543e94").unwrap().into_raw();
-        let tx = r_build_raw_tx(base_tx, sig, bc_agg_pubkey, control, input_index).unwrap();
-        assert_eq!(WITHDRAW_TX, convert_char_to_str(tx));
+        let tx = r_build_raw_scirpt_tx(base_tx, sig, bc_agg_pubkey, control, input_index).unwrap();
+        assert_eq!(WITHDRAW_SCRIPT_TX, convert_char_to_str(tx));
+    }
+
+    #[test]
+    fn generate_key_tx_should_work() {
+        let txid = CString::new("1f8e0f7dfa37b184244d022cdf2bc7b8e0bac8b52143ea786fa3f7bbe049eeae")
+            .unwrap()
+            .into_raw();
+        let index = 1;
+        let base_tx = r_get_base_tx(txid, index).unwrap();
+
+        let addr = CString::new("tb1pn202yeugfa25nssxk2hv902kmxrnp7g9xt487u256n20jgahuwasdcjfdw")
+            .unwrap()
+            .into_raw();
+        let value: f32 = 0.001 * 100_000_000f32;
+        let base_tx = r_add_output(base_tx, addr, value as u64).unwrap();
+        let op_return = CString::new("35516a706f3772516e7751657479736167477a6334526a376f737758534c6d4d7141754332416255364c464646476a38")
+            .unwrap()
+            .into_raw();
+        let value: f32 = 0f32;
+        let base_tx = r_add_output(base_tx, op_return, value as u64).unwrap();
+        let addr = CString::new("tb1pexff2s7l58sthpyfrtx500ax234stcnt0gz2lr4kwe0ue95a2e0srxsc68")
+            .unwrap()
+            .into_raw();
+        let value: f32 = 0.004 * 100_000_000f32;
+        let base_tx = r_add_output(base_tx, addr, value as u64).unwrap();
+        let prev_tx = CString::new(WITHDRAW_KEY_TX_PREV).unwrap().into_raw();
+        let input_index = 0;
+        let sighash = r_get_sighash(prev_tx, base_tx, input_index, 0).unwrap();
+
+        let msg = convert_char_to_str(sighash);
+        let privs = vec![PRIVATEC];
+        let (signature, key_agg) = generate_signature(privs, &msg);
+        assert!(verify(
+            &signature,
+            &Message::parse_slice(&hex::decode(msg).unwrap()).unwrap(),
+            &key_agg.X_tilde,
+        )
+        .unwrap());
+
+        // The result of each signature is different
+        // let sig = CString::new(hex::encode(signature.serialize())).unwrap().into_raw();
+        let sig = CString::new("9e325889515ed47099fdd7098e6fafdc880b21456d3f368457de923f4229286e34cef68816348a0581ae5885ede248a35ac4b09da61a7b9b90f34c200872d2e3").unwrap().into_raw();
+        let tx = r_build_raw_key_tx(base_tx, sig, input_index).unwrap();
+        assert_eq!(WITHDRAW_KEY_TX, convert_char_to_str(tx));
     }
 }

@@ -15,6 +15,8 @@ pub enum Error {
     NullRound1State,
     EncodeFail,
     InvalidPublicBytes,
+    // invalid address
+    InvalidAddr,
     // invalid tx
     InvalidTransaction,
     // invalid taproot script pubkey
@@ -76,6 +78,9 @@ impl From<Error> for *mut i8 {
             },
             Error::InvalidTaprootScript => unsafe {
                 CString::from_vec_unchecked(b"Invalid Taproot Script Pubkey".to_vec()).into_raw()
+            },
+            Error::InvalidAddr => unsafe {
+                CString::from_vec_unchecked(b"Invalid Address".to_vec()).into_raw()
             },
         }
     }

@@ -11,6 +11,7 @@ use light_bitcoin::{
     chain::{Bytes, OutPoint, Transaction, TransactionInput, TransactionOutput, H256},
     keys::Address,
     mast::Mast,
+    primitives::hash_rev,
     script::{
         Builder, Opcode, Script, ScriptExecutionData, SignatureVersion, TransactionInputSigner,
     },
@@ -445,13 +446,31 @@ pub fn r_get_my_mast(pubkeys: *const c_char, threshold: usize) -> Result<Mast, E
 }
 
 // Construct a base transaction
-pub fn r_get_base_tx() -> Result<*mut c_char, Error> {
-    let tx = Transaction {
+pub fn r_get_base_tx(txid: *const c_char, index: u32) -> Result<*mut c_char, Error> {
+    let mut tx = Transaction {
         version: 2,
         inputs: vec![],
         outputs: vec![],
         lock_time: 0,
     };
+
+    let r_txid = c_char_to_r_bytes(txid)?;
+    if r_txid.len() != 32 {
+        return Err(Error::InvalidTransaction);
+    }
+
+    let mut txid_bytes = [0u8; 32];
+    txid_bytes.copy_from_slice(&r_txid[0..32]);
+    let txid = hash_rev(H256(txid_bytes));
+
+    let input = TransactionInput {
+        previous_output: OutPoint { txid, index },
+        script_sig: Bytes::new(),
+        sequence: 0,
+        script_witness: vec![],
+    };
+
+    tx.inputs.push(input);
 
     let tx_hex = hex::encode(serialize_with_flags(&tx, SERIALIZE_TRANSACTION_WITNESS));
     let c_tx_str = CString::new(tx_hex)?;
@@ -463,16 +482,12 @@ pub fn r_add_input(
     txid: *const c_char,
     index: u32,
 ) -> Result<*mut c_char, Error> {
-    let (c_base_tx, c_txid) = unsafe {
+    let c_base_tx = unsafe {
         if base_tx.is_null() {
             return Err(Error::InvalidTransaction);
         }
 
-        if txid.is_null() {
-            return Err(Error::InvalidTransaction);
-        }
-
-        (CStr::from_ptr(base_tx), CStr::from_ptr(txid))
+        CStr::from_ptr(base_tx)
     };
 
     let mut base_tx: Transaction = c_base_tx
@@ -480,7 +495,8 @@ pub fn r_add_input(
         .parse()
         .map_err(|_| Error::InvalidTransaction)?;
 
-    let r_txid = c_txid.to_bytes();
+    let r_txid = c_char_to_r_bytes(txid)?;
+
     if r_txid.len() != 32 {
         return Err(Error::InvalidTransaction);
     }
@@ -528,9 +544,10 @@ pub fn r_add_output(
         .map_err(|_| Error::InvalidTransaction)?;
 
     let r_addr = c_addr.to_str()?;
-    let _addr: Address = r_addr.parse().map_err(|_| Error::InvalidTransaction)?;
-    // TODO: check the address type to compute script_pubkey
-    let script_pubkey = Bytes::default();
+
+    let addr: Address = r_addr.parse().map_err(|_| Error::InvalidAddr)?;
+
+    let script_pubkey: Bytes = Builder::build_address_types(&addr).into();
 
     let output = TransactionOutput {
         value,
@@ -595,40 +612,20 @@ pub fn r_build_raw_tx(
     control: *const c_char,
     input_index: usize,
 ) -> Result<*mut c_char, Error> {
-    let (c_base_tx, c_signature, c_agg_pubkey, c_control) = unsafe {
+    let c_base_tx = unsafe {
         if base_tx.is_null() {
             return Err(Error::InvalidTransaction);
         }
-
-        if signature.is_null() {
-            return Err(Error::InvalidTransaction);
-        }
-
-        if agg_pubkey.is_null() {
-            return Err(Error::InvalidTransaction);
-        }
-
-        if control.is_null() {
-            return Err(Error::InvalidTransaction);
-        }
-
-        (
-            CStr::from_ptr(base_tx),
-            CStr::from_ptr(signature),
-            CStr::from_ptr(agg_pubkey),
-            CStr::from_ptr(control),
-        )
+        CStr::from_ptr(base_tx)
     };
-
     let mut base_tx: Transaction = c_base_tx
         .to_str()?
         .parse()
         .map_err(|_| Error::InvalidTransaction)?;
 
-    let signature = Bytes::from(c_signature.to_bytes());
-    let control = Bytes::from(c_control.to_bytes());
-
-    let agg_pubkey = c_agg_pubkey.to_bytes();
+    let signature: Bytes = c_char_to_r_bytes(signature)?.into();
+    let control: Bytes = c_char_to_r_bytes(control)?.into();
+    let agg_pubkey = c_char_to_r_bytes(agg_pubkey)?;
     if agg_pubkey.len() != 65 {
         return Err(Error::InvalidPublicBytes);
     }
@@ -662,10 +659,12 @@ mod tests {
     use super::*;
     use secp256k1::Message;
 
-    const PRIVATEA: &str = "5495822c4f8efbe17b9bae42a85e8998baec458f3824440d1ce8d9357ad4a7b7";
-    const PRIVATEB: &str = "cef4bbc9689812098c379bec0bb063a895916008344ca04cddbd21ccbcce3bcf";
-    const PRIVATEC: &str = "c9045032eb6df7ebc51d862f9a6a8ffa90eb691dc1b70b4c7b8d1ed0fd8cc25f";
+    const PRIVATEA: &str = "e5bb018d70c6fb5dd8ad91f6c88fb0e6fdab2c482978c95bb3794ca6e2e50dc2";
+    const PRIVATEB: &str = "a7150e8f24ab26ebebddd831aeb8f00ecb593df3b80ae1e8b8be01351805f2d6";
+    const PRIVATEC: &str = "4a84a4601e463bc02dd0b8be03f3721187e9fc3105d5d5e8930ff3c8ca15cf40";
     const MESSAGE: &str = "b9b74d5852010cc4bf1010500ae6a97eca7868c9779d50c60fb4ae568b01ea38";
+    const WITHDRAW_TX_PREV: &str = "02000000000101aeee49e0bbf7a36f78ea4321b5c8bae0b8c72bdf2c024d2484b137fa7d0f8e1f01000000000000000003a0860100000000002251209a9ea267884f5549c206b2aec2bd56d98730f90532ea7f7154d4d4f923b7e3bb0000000000000000326a3035516a706f3772516e7751657479736167477a6334526a376f737758534c6d4d7141754332416255364c464646476a38801a060000000000225120c9929543dfa1e0bb84891acd47bfa6546b05e26b7a04af8eb6765fcc969d565f01409e325889515ed47099fdd7098e6fafdc880b21456d3f368457de923f4229286e34cef68816348a0581ae5885ede248a35ac4b09da61a7b9b90f34c200872d2e300000000";
+    const WITHDRAW_TX:  &str= "020000000001015fea22ec1a3e3e7e1167fa220cc8376225f07bd20aa194e7f3c4ac68c7375d8e0000000000000000000250c3000000000000225120c9929543dfa1e0bb84891acd47bfa6546b05e26b7a04af8eb6765fcc969d565f409c0000000000002251209a9ea267884f5549c206b2aec2bd56d98730f90532ea7f7154d4d4f923b7e3bb03402639d4d9882f6e7e42db38dbd2845c87b131737bf557643ef575c49f8fc6928869d9edf5fd61606fb07cced365fdc2c7b637e6ecc85b29906c16d314e7543e94222086a60c7d5dd3f4931cc8ad77a614402bdb591c042347c89281c48c7e9439be9dac61c0e56a1792f348690cdeebe60e3db6c4e94d94e742c619f7278e52f6cbadf5efe96a528ba3f61a5b0d4fbceea425a9028381458b32492bccc3f1faa473a649e23605554f5ea4b4044229173719228a35635eeffbd8a8fe526270b737ad523b99f600000000";
 
     fn convert_char_to_str(c: *mut c_char) -> String {
         let c_str = unsafe {
@@ -823,6 +822,107 @@ mod tests {
         let ab_agg = get_key_agg(pubkeys_ab);
         let control =
             hex::encode(&c_char_to_r_bytes(generate_control_block(pubkeys, 2, ab_agg)).unwrap());
-        assert_eq!("e9767f9fc30376efc53167707a4ceb905391be7ce971df6493942e1d008e0a7ab0634f733e7b963edc28cc80fdfe4a98149689dea232b4587d2e3f572c0e766c9bdd6ce39048cd115b8fbc39dce888f8bfb5fd16e5649ae6b4b6b81592f53873", control);
+        assert_eq!("c0e56a1792f348690cdeebe60e3db6c4e94d94e742c619f7278e52f6cbadf5efe92fdde920fba76c5735f1169a54a713816c99dcacaf2c61442e8f87fec02d1100", control);
+    }
+
+    fn generate_signature(privs: Vec<&str>, msg: &str) -> (Signature, KeyAgg) {
+        let mut pubkeys = Vec::new();
+        let mut keypairs = Vec::new();
+        for p in privs {
+            let privkey = PrivateKey::try_from(p).unwrap();
+            let pubkey = PublicKey::create_from_private_key(&privkey);
+            let keypair = KeyPair::create_from_private_key(&privkey.0.b32()).unwrap();
+            pubkeys.push(pubkey);
+            keypairs.push(keypair);
+        }
+        let message = hex::decode(msg).unwrap();
+
+        let key_agg = KeyAgg::key_aggregation_n(&pubkeys).unwrap();
+
+        let states: Vec<State> = (0..pubkeys.len())
+            .into_iter()
+            .map(|_| musig2::sign().unwrap())
+            .collect();
+
+        let mut state_primes = Vec::new();
+        for i in 0..pubkeys.len() {
+            let mut received_round_1: Vec<Vec<PublicKey>> =
+                states.iter().map(|s| s.our_reveals()).collect();
+            received_round_1.remove(i);
+
+            let state_prime = states[i]
+                .sign_prime(&message, &pubkeys, &keypairs[i], received_round_1)
+                .unwrap();
+            state_primes.push(state_prime);
+        }
+
+        let signature = sign_double_prime(&state_primes).unwrap();
+        (signature, key_agg)
+    }
+
+    #[test]
+    fn generate_tx_should_work() {
+        let txid = CString::new("8e5d37c768acc4f3e794a10ad27bf0256237c80c22fa67117e3e3e1aec22ea5f")
+            .unwrap()
+            .into_raw();
+        let index = 0;
+        let base_tx = r_get_base_tx(txid, index).unwrap();
+        // let base_tx =  r_add_input(base_tx, txid, index).unwrap();
+        let addr = CString::new("tb1pexff2s7l58sthpyfrtx500ax234stcnt0gz2lr4kwe0ue95a2e0srxsc68")
+            .unwrap()
+            .into_raw();
+        let value: f32 = 0.0005 * 100_000_000f32;
+        let base_tx = r_add_output(base_tx, addr, value as u64).unwrap();
+        let addr = CString::new("tb1pn202yeugfa25nssxk2hv902kmxrnp7g9xt487u256n20jgahuwasdcjfdw")
+            .unwrap()
+            .into_raw();
+        let value: f32 = 0.0004 * 100_000_000f32;
+        let base_tx = r_add_output(base_tx, addr, value as u64).unwrap();
+        let prev_tx = CString::new(WITHDRAW_TX_PREV).unwrap().into_raw();
+        let input_index = 0;
+        let sighash = r_get_sighash(prev_tx, base_tx, input_index).unwrap();
+
+        let msg = convert_char_to_str(sighash);
+        let privs = vec![PRIVATEB, PRIVATEC];
+        let (signature, key_agg) = generate_signature(privs, &msg);
+        assert!(verify(
+            &signature,
+            &Message::parse_slice(&hex::decode(msg).unwrap()).unwrap(),
+            &key_agg.X_tilde,
+        )
+        .unwrap());
+
+        let privkey_a = CString::new(PRIVATEA).unwrap().into_raw();
+        let privkey_b = CString::new(PRIVATEB).unwrap().into_raw();
+        let privkey_c = CString::new(PRIVATEC).unwrap().into_raw();
+
+        let pubkey_a = get_my_pubkey(privkey_a);
+        let pubkey_b = get_my_pubkey(privkey_b);
+        let pubkey_c = get_my_pubkey(privkey_c);
+        let pubkeys = bytes_to_c_char(
+            [
+                c_char_to_r_bytes(pubkey_a).unwrap(),
+                c_char_to_r_bytes(pubkey_b).unwrap(),
+                c_char_to_r_bytes(pubkey_c).unwrap(),
+            ]
+            .concat(),
+        )
+        .unwrap();
+
+        let bc_pubkeys = bytes_to_c_char(
+            [
+                c_char_to_r_bytes(pubkey_b).unwrap(),
+                c_char_to_r_bytes(pubkey_c).unwrap(),
+            ]
+            .concat(),
+        )
+        .unwrap();
+        let bc_agg_pubkey = get_key_agg(bc_pubkeys);
+        let control = generate_control_block(pubkeys, 2, bc_agg_pubkey);
+        // The result of each signature is different
+        // let sig = CString::new(hex::encode(signature.serialize())).unwrap().into_raw();
+        let sig = CString::new("2639d4d9882f6e7e42db38dbd2845c87b131737bf557643ef575c49f8fc6928869d9edf5fd61606fb07cced365fdc2c7b637e6ecc85b29906c16d314e7543e94").unwrap().into_raw();
+        let tx = r_build_raw_tx(base_tx, sig, bc_agg_pubkey, control, input_index).unwrap();
+        assert_eq!(WITHDRAW_TX, convert_char_to_str(tx));
     }
 }

@@ -74,8 +74,8 @@ impl From<MastError> for Error {
     }
 }
 
-impl From<bitcoin_wallet::error::Error> for Error {
-    fn from(_: bitcoin_wallet::error::Error) -> Self {
+impl From<bip0039::Error> for Error {
+    fn from(_: bip0039::Error) -> Self {
         Self::InvalidPhrase
     }
 }

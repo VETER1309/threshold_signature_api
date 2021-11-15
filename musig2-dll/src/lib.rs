@@ -6,7 +6,7 @@ use std::{
 };
 
 use self::error::Error;
-use bitcoin_wallet::mnemonic::Mnemonic;
+use bip0039::Mnemonic;
 use libc::c_char;
 use light_bitcoin::{
     chain::{Bytes, OutPoint, Transaction, TransactionInput, TransactionOutput, H256},
@@ -17,6 +17,7 @@ use light_bitcoin::{
     serialization::{serialize_with_flags, SERIALIZE_TRANSACTION_WITNESS},
 };
 use musig2::{sign_double_prime, KeyAgg, KeyPair, Nv, PrivateKey, PublicKey, State, StatePrime};
+use std::str::FromStr;
 
 const PUBLICKEY_NORMAL_SIZE: usize = 65;
 const ROUND1_MSG_SIZE: usize = Nv * PUBLICKEY_NORMAL_SIZE;
@@ -893,9 +894,9 @@ pub fn r_get_my_privkey(
     };
     let phrase = phrase.to_str()?;
     let pd_passphrase = pd_passphrase.to_str()?;
-    let m = Mnemonic::from_str(phrase)?;
-    let seed = m.to_seed(Some(pd_passphrase));
-    let privkey = &seed.0[..32];
+    let m = Mnemonic::from_str(phrase).map_err(|_| Error::InvalidPhrase)?;
+    let seed = m.to_seed(pd_passphrase);
+    let privkey = &seed[..32];
     let c_tx_str = CString::new(hex::encode(privkey))?;
     Ok(c_tx_str.into_raw())
 }

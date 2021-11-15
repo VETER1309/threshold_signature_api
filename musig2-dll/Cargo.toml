@@ -17,6 +17,6 @@ musig2 = { git = "https://github.com/chainx-org/Musig2", branch = "lib" }
 libc = { version = "0.2.0", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 serde = { version = "1.0.123", default-features = false, optional = true }
-serde_json = { version = "1.0.68", efault-features = false }
+serde_json = { version = "1.0.68", default-features = false, features = ["alloc"] }
 bitcoin-wallet = { version = "1.1.0", default-features = false }
 

@@ -455,13 +455,11 @@ pub fn r_get_base_tx(txid: *const c_char, index: u32) -> Result<*mut c_char, Err
     };
 
     let r_txid = c_char_to_r_bytes(txid)?;
-    if r_txid.len() != 32 {
-        return Err(Error::InvalidTransaction);
-    }
 
-    let mut txid_bytes = [0u8; 32];
-    txid_bytes.copy_from_slice(&r_txid[0..32]);
-    let txid = hash_rev(H256(txid_bytes));
+    if r_txid.len() != 32 {
+        return Err(Error::InvalidTxid);
+    }
+    let txid = hash_rev(H256::from_slice(&r_txid));
 
     let input = TransactionInput {
         previous_output: OutPoint { txid, index },
@@ -498,12 +496,10 @@ pub fn r_add_input(
     let r_txid = c_char_to_r_bytes(txid)?;
 
     if r_txid.len() != 32 {
-        return Err(Error::InvalidTransaction);
+        return Err(Error::InvalidTxid);
     }
 
-    let mut txid_bytes = [0u8; 32];
-    txid_bytes.copy_from_slice(&r_txid[0..32]);
-    let txid = H256(txid_bytes);
+    let txid = hash_rev(H256::from_slice(&r_txid));
 
     let input = TransactionInput {
         previous_output: OutPoint { txid, index },
@@ -532,7 +528,7 @@ pub fn r_add_output(
         }
 
         if addr.is_null() {
-            return Err(Error::InvalidTransaction);
+            return Err(Error::InvalidAddr);
         }
 
         (CStr::from_ptr(base_tx), CStr::from_ptr(addr))
@@ -607,7 +603,7 @@ pub fn r_get_sighash(
 
 pub fn r_build_raw_tx(
     base_tx: *const c_char,
-    signature: *const c_char,
+    agg_signature: *const c_char,
     agg_pubkey: *const c_char,
     control: *const c_char,
     input_index: usize,
@@ -623,22 +619,27 @@ pub fn r_build_raw_tx(
         .parse()
         .map_err(|_| Error::InvalidTransaction)?;
 
-    let signature: Bytes = c_char_to_r_bytes(signature)?.into();
+    let agg_signature: Bytes = c_char_to_r_bytes(agg_signature)?.into();
     let control: Bytes = c_char_to_r_bytes(control)?.into();
     let agg_pubkey = c_char_to_r_bytes(agg_pubkey)?;
+
+    if agg_signature.len() != 64 {
+        return Err(Error::InvalidSignature);
+    }
     if agg_pubkey.len() != 65 {
         return Err(Error::InvalidPublicBytes);
     }
-    let mut keys = [0u8; PUBLICKEY_NORMAL_SIZE];
-    keys.copy_from_slice(&agg_pubkey[0..PUBLICKEY_NORMAL_SIZE]);
-    let pubkey = PublicKey::parse(&keys)?;
+
+    let pubkey = PublicKey::parse_slice(&agg_pubkey)?;
 
     let script = Builder::default()
         .push_bytes(&pubkey.x_coor().to_vec())
         .push_opcode(Opcode::OP_CHECKSIG)
         .into_script();
 
-    base_tx.inputs[input_index].script_witness.push(signature);
+    base_tx.inputs[input_index]
+        .script_witness
+        .push(agg_signature);
     base_tx.inputs[input_index]
         .script_witness
         .push(script.to_bytes());
@@ -867,7 +868,7 @@ mod tests {
             .into_raw();
         let index = 0;
         let base_tx = r_get_base_tx(txid, index).unwrap();
-        // let base_tx =  r_add_input(base_tx, txid, index).unwrap();
+
         let addr = CString::new("tb1pexff2s7l58sthpyfrtx500ax234stcnt0gz2lr4kwe0ue95a2e0srxsc68")
             .unwrap()
             .into_raw();

@@ -6,6 +6,7 @@ use std::{
 };
 
 use self::error::Error;
+use bitcoin_wallet::mnemonic::Mnemonic;
 use libc::c_char;
 use light_bitcoin::{
     chain::{Bytes, OutPoint, Transaction, TransactionInput, TransactionOutput, H256},
@@ -816,6 +817,23 @@ pub fn r_generate_schnorr_signature(
     Ok(c_tx_str.into_raw())
 }
 
+pub fn r_get_my_privkey(phrase: *const c_char) -> Result<*mut c_char, Error> {
+    let phrase = unsafe {
+        if phrase.is_null() {
+            return Err(Error::InvalidPhrase);
+        }
+        CStr::from_ptr(phrase)
+    };
+    let phrase = phrase.to_str()?;
+
+    let m = Mnemonic::from_str(phrase)?;
+    // default phrase seed (no passphrase)
+    let seed = m.to_seed(Some(""));
+    let privkey = &seed.0[..32];
+    let c_tx_str = CString::new(hex::encode(privkey))?;
+    Ok(c_tx_str.into_raw())
+}
+
 #[cfg(test)]
 mod tests {
     use musig2::{verify, Signature};
@@ -824,6 +842,11 @@ mod tests {
     use super::*;
     use secp256k1::Message;
 
+    const PHRASE0: &str = "flame flock chunk trim modify raise rough client coin busy income smile";
+    const PHRASE1: &str =
+        "shrug argue supply evolve alarm caught swamp tissue hollow apology youth ethics";
+    const PHRASE2: &str =
+        "awesome beef hill broccoli strike poem rebel unique turn circle cool system";
     const PRIVATEA: &str = "e5bb018d70c6fb5dd8ad91f6c88fb0e6fdab2c482978c95bb3794ca6e2e50dc2";
     const PRIVATEB: &str = "a7150e8f24ab26ebebddd831aeb8f00ecb593df3b80ae1e8b8be01351805f2d6";
     const PRIVATEC: &str = "4a84a4601e463bc02dd0b8be03f3721187e9fc3105d5d5e8930ff3c8ca15cf40";
@@ -844,9 +867,13 @@ mod tests {
 
     #[test]
     fn test_multiparty_signing() {
-        let privkey_a = CString::new(PRIVATEA).unwrap().into_raw();
-        let privkey_b = CString::new(PRIVATEB).unwrap().into_raw();
-        let privkey_c = CString::new(PRIVATEC).unwrap().into_raw();
+        let phrase_0 = CString::new(PHRASE0).unwrap().into_raw();
+        let phrase_1 = CString::new(PHRASE1).unwrap().into_raw();
+        let phrase_2 = CString::new(PHRASE2).unwrap().into_raw();
+
+        let privkey_a = r_get_my_privkey(phrase_0).unwrap();
+        let privkey_b = r_get_my_privkey(phrase_1).unwrap();
+        let privkey_c = r_get_my_privkey(phrase_2).unwrap();
         let msg = CString::new(MESSAGE).unwrap().into_raw();
 
         let pubkey_a = get_my_pubkey(privkey_a);

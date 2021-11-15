@@ -40,6 +40,8 @@ pub enum Error {
     ComputeSighashFail,
     // construct tx fail
     ConstructTxFail,
+    // invalid phrase
+    InvalidPhrase,
 }
 
 impl From<Utf8Error> for Error {
@@ -68,9 +70,13 @@ impl From<NulError> for Error {
 
 impl From<MastError> for Error {
     fn from(e: MastError) -> Self {
-        match e {
-            _ => Self::NormalError,
-        }
+        Self::NormalError
+    }
+}
+
+impl From<bitcoin_wallet::error::Error> for Error {
+    fn from(_: bitcoin_wallet::error::Error) -> Self {
+        Self::InvalidPhrase
     }
 }
 
@@ -124,6 +130,9 @@ impl From<Error> for *mut i8 {
             },
             Error::InvalidSecret => unsafe {
                 CString::from_vec_unchecked(b"Construct Secret Key".to_vec()).into_raw()
+            },
+            Error::InvalidPhrase => unsafe {
+                CString::from_vec_unchecked(b"Invalid Phrase".to_vec()).into_raw()
             },
         }
     }

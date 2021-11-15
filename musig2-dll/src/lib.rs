@@ -9,12 +9,10 @@ use self::error::Error;
 use libc::c_char;
 use light_bitcoin::{
     chain::{Bytes, OutPoint, Transaction, TransactionInput, TransactionOutput, H256},
-    keys::Address,
+    keys::{sign_with_aux, Address},
     mast::Mast,
     primitives::hash_rev,
-    script::{
-        Builder, Opcode, Script, ScriptExecutionData, SignatureVersion, TransactionInputSigner,
-    },
+    script::{Builder, Opcode, ScriptExecutionData, SignatureVersion, TransactionInputSigner},
     serialization::{serialize_with_flags, SERIALIZE_TRANSACTION_WITNESS},
 };
 use musig2::{sign_double_prime, KeyAgg, KeyPair, Nv, PrivateKey, PublicKey, State, StatePrime};
@@ -610,6 +608,7 @@ pub fn r_add_output(
 
 /// Passing the previous transaction and the constructed transaction
 /// and the previous transaction outpoint index to calculate Sighash.
+/// agg_pubkey: required when spending by script, pass in a null value when spending by path
 /// sigversion: 0 or 1, 0 is Taproot, 1 is Tapscript.
 /// Returns: String.
 /// Return the sighash.
@@ -619,9 +618,10 @@ pub extern "C" fn get_sighash(
     prev_tx: *const c_char,
     tx: *const c_char,
     index: u32,
+    agg_pubkey: *const c_char,
     sigversion: u32,
 ) -> *mut c_char {
-    match r_get_sighash(prev_tx, tx, index as usize, sigversion) {
+    match r_get_sighash(prev_tx, tx, index as usize, agg_pubkey, sigversion) {
         Ok(tx) => tx,
         Err(_) => Error::ComputeSighashFail.into(),
     }
@@ -632,6 +632,7 @@ pub fn r_get_sighash(
     prev_tx: *const c_char,
     tx: *const c_char,
     input_index: usize,
+    agg_pubkey: *const c_char,
     sigversion: u32,
 ) -> Result<*mut c_char, Error> {
     let (c_prev_tx, c_tx) = unsafe {
@@ -651,17 +652,26 @@ pub fn r_get_sighash(
         .parse()
         .map_err(|_| Error::InvalidTransaction)?;
 
-    let signer: TransactionInputSigner = tx.into();
+    let signer: TransactionInputSigner = tx.clone().into();
     let mut execdata = ScriptExecutionData::default();
+
+    let pre_index = tx.inputs[input_index].previous_output.index as usize;
+
     let sighash = if sigversion == 1 {
-        let script_pubkey: Script = prev_tx.outputs[input_index].script_pubkey.clone().into();
-        if !script_pubkey.is_pay_to_witness_taproot() {
-            return Err(Error::InvalidTaprootScript);
+        let agg_pubkey = c_char_to_r_bytes(agg_pubkey)?;
+        if agg_pubkey.len() != 65 {
+            return Err(Error::InvalidPublicBytes);
         }
+        let agg_pubkey = PublicKey::parse_slice(&agg_pubkey)?;
+        let script_pubkey = Builder::default()
+            .push_bytes(&agg_pubkey.x_coor().to_vec())
+            .push_opcode(Opcode::OP_CHECKSIG)
+            .into_script();
+
         execdata.with_script(&script_pubkey);
         signer.signature_hash_schnorr(
             input_index,
-            &[prev_tx.outputs[input_index].clone()],
+            &[prev_tx.outputs[pre_index].clone()],
             SignatureVersion::TapScript,
             0,
             &execdata,
@@ -669,7 +679,7 @@ pub fn r_get_sighash(
     } else if sigversion == 0 {
         signer.signature_hash_schnorr(
             input_index,
-            &[prev_tx.outputs[input_index].clone()],
+            &[prev_tx.outputs[pre_index].clone()],
             SignatureVersion::Taproot,
             0,
             &execdata,
@@ -790,6 +800,22 @@ pub fn r_build_raw_key_tx(
     Ok(c_tx_str.into_raw())
 }
 
+pub fn r_generate_schnorr_signature(
+    message: *const c_char,
+    privkey: *const c_char,
+    aux: *const c_char,
+) -> Result<*mut c_char, Error> {
+    let aux = H256::from_slice(&c_char_to_r_bytes(aux)?);
+    let message = H256::from_slice(&c_char_to_r_bytes(message)?);
+    let privkey = secp256k1::SecretKey::parse_slice(&c_char_to_r_bytes(privkey)?)
+        .map_err(|_| Error::InvalidSecret)?;
+    let signature: [u8; 64] = sign_with_aux(message, aux, privkey)
+        .map_err(|_| Error::InvalidSignature)?
+        .into();
+    let c_tx_str = CString::new(hex::encode(signature))?;
+    Ok(c_tx_str.into_raw())
+}
+
 #[cfg(test)]
 mod tests {
     use musig2::{verify, Signature};
@@ -903,8 +929,6 @@ mod tests {
         agg_pubkey_bytes.copy_from_slice(&c_char_to_r_bytes(agg).unwrap()[..65]);
         let agg_pubkey = PublicKey::parse(&agg_pubkey_bytes).unwrap();
 
-        println!("agg_pubkey: {}", hex::encode(&agg_pubkey.serialize()));
-
         verify(
             &signature,
             &Message::parse_slice(&hex::decode(&MESSAGE).unwrap()).unwrap(),
@@ -1003,36 +1027,6 @@ mod tests {
 
     #[test]
     fn generate_script_tx_should_work() {
-        let txid = CString::new("8e5d37c768acc4f3e794a10ad27bf0256237c80c22fa67117e3e3e1aec22ea5f")
-            .unwrap()
-            .into_raw();
-        let index = 0;
-        let base_tx = r_get_base_tx(txid, index).unwrap();
-
-        let addr = CString::new("tb1pexff2s7l58sthpyfrtx500ax234stcnt0gz2lr4kwe0ue95a2e0srxsc68")
-            .unwrap()
-            .into_raw();
-        let value: f32 = 0.0005 * 100_000_000f32;
-        let base_tx = r_add_output(base_tx, addr, value as u64).unwrap();
-        let addr = CString::new("tb1pn202yeugfa25nssxk2hv902kmxrnp7g9xt487u256n20jgahuwasdcjfdw")
-            .unwrap()
-            .into_raw();
-        let value: f32 = 0.0004 * 100_000_000f32;
-        let base_tx = r_add_output(base_tx, addr, value as u64).unwrap();
-        let prev_tx = CString::new(WITHDRAW_SCRIPT_TX_PREV).unwrap().into_raw();
-        let input_index = 0;
-        let sighash = r_get_sighash(prev_tx, base_tx, input_index, 1).unwrap();
-
-        let msg = convert_char_to_str(sighash);
-        let privs = vec![PRIVATEB, PRIVATEC];
-        let (signature, key_agg) = generate_signature(privs, &msg);
-        assert!(verify(
-            &signature,
-            &Message::parse_slice(&hex::decode(msg).unwrap()).unwrap(),
-            &key_agg.X_tilde,
-        )
-        .unwrap());
-
         let privkey_a = CString::new(PRIVATEA).unwrap().into_raw();
         let privkey_b = CString::new(PRIVATEB).unwrap().into_raw();
         let privkey_c = CString::new(PRIVATEC).unwrap().into_raw();
@@ -1059,6 +1053,43 @@ mod tests {
         )
         .unwrap();
         let bc_agg_pubkey = get_key_agg(bc_pubkeys);
+
+        let txid = CString::new("8e5d37c768acc4f3e794a10ad27bf0256237c80c22fa67117e3e3e1aec22ea5f")
+            .unwrap()
+            .into_raw();
+        let index = 0;
+        let base_tx = r_get_base_tx(txid, index).unwrap();
+
+        let addr = CString::new("tb1pexff2s7l58sthpyfrtx500ax234stcnt0gz2lr4kwe0ue95a2e0srxsc68")
+            .unwrap()
+            .into_raw();
+        let value: f32 = 0.0005 * 100_000_000f32;
+        let base_tx = r_add_output(base_tx, addr, value as u64).unwrap();
+        let addr = CString::new("tb1pn202yeugfa25nssxk2hv902kmxrnp7g9xt487u256n20jgahuwasdcjfdw")
+            .unwrap()
+            .into_raw();
+        let value: f32 = 0.0004 * 100_000_000f32;
+        let base_tx = r_add_output(base_tx, addr, value as u64).unwrap();
+        let prev_tx = CString::new(WITHDRAW_SCRIPT_TX_PREV).unwrap().into_raw();
+        let input_index = 0;
+        let sighash = r_get_sighash(prev_tx, base_tx, input_index, bc_agg_pubkey, 1).unwrap();
+
+        let msg = convert_char_to_str(sighash);
+        let privs = vec![PRIVATEB, PRIVATEC];
+        let (signature, key_agg) = generate_signature(privs, &msg);
+        assert!(verify(
+            &signature,
+            &Message::parse_slice(&hex::decode(msg.clone()).unwrap()).unwrap(),
+            &key_agg.X_tilde,
+        )
+        .unwrap());
+        assert!(verify(
+            &Signature::parse(&hex::decode("2639d4d9882f6e7e42db38dbd2845c87b131737bf557643ef575c49f8fc6928869d9edf5fd61606fb07cced365fdc2c7b637e6ecc85b29906c16d314e7543e94").unwrap()).unwrap(),
+            &Message::parse_slice(&hex::decode(msg).unwrap()).unwrap(),
+            &key_agg.X_tilde,
+        )
+            .unwrap());
+
         let control = generate_control_block(pubkeys, 2, bc_agg_pubkey);
         // The result of each signature is different
         // let sig = CString::new(hex::encode(signature.serialize())).unwrap().into_raw();
@@ -1069,6 +1100,9 @@ mod tests {
 
     #[test]
     fn generate_key_tx_should_work() {
+        let privkey_c = CString::new(PRIVATEC).unwrap().into_raw();
+        let pubkey_c = get_my_pubkey(privkey_c);
+
         let txid = CString::new("1f8e0f7dfa37b184244d022cdf2bc7b8e0bac8b52143ea786fa3f7bbe049eeae")
             .unwrap()
             .into_raw();
@@ -1092,17 +1126,30 @@ mod tests {
         let base_tx = r_add_output(base_tx, addr, value as u64).unwrap();
         let prev_tx = CString::new(WITHDRAW_KEY_TX_PREV).unwrap().into_raw();
         let input_index = 0;
-        let sighash = r_get_sighash(prev_tx, base_tx, input_index, 0).unwrap();
+        let agg_pubkey = CString::new("").unwrap().into_raw();
+        let sighash = r_get_sighash(prev_tx, base_tx, input_index, agg_pubkey, 0).unwrap();
 
         let msg = convert_char_to_str(sighash);
-        let privs = vec![PRIVATEC];
-        let (signature, key_agg) = generate_signature(privs, &msg);
+        let aux = CString::new("0000000000000000000000000000000000000000000000000000000000000000")
+            .unwrap()
+            .into_raw();
+
+        let signature = r_generate_schnorr_signature(sighash, privkey_c, aux).unwrap();
+        let pubkey_c = PublicKey::parse_slice(&c_char_to_r_bytes(pubkey_c).unwrap()).unwrap();
+
         assert!(verify(
-            &signature,
-            &Message::parse_slice(&hex::decode(msg).unwrap()).unwrap(),
-            &key_agg.X_tilde,
+            &Signature::parse(&c_char_to_r_bytes(signature).unwrap()[..]).unwrap(),
+            &Message::parse_slice(&hex::decode(msg.clone()).unwrap()).unwrap(),
+            &pubkey_c,
         )
         .unwrap());
+
+        assert!(verify(
+            &Signature::parse(&hex::decode("9e325889515ed47099fdd7098e6fafdc880b21456d3f368457de923f4229286e34cef68816348a0581ae5885ede248a35ac4b09da61a7b9b90f34c200872d2e3").unwrap()).unwrap(),
+            &Message::parse_slice(&hex::decode(msg).unwrap()).unwrap(),
+            &pubkey_c,
+        )
+            .unwrap());
 
         // The result of each signature is different
         // let sig = CString::new(hex::encode(signature.serialize())).unwrap().into_raw();

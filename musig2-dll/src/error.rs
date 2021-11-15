@@ -16,6 +16,8 @@ pub enum Error {
     NullRound1State,
     // encode faile
     EncodeFail,
+    // invalid secret key
+    InvalidSecret,
     // invalid public key
     InvalidPublicBytes,
     // invalid address
@@ -119,6 +121,9 @@ impl From<Error> for *mut i8 {
             },
             Error::ConstructTxFail => unsafe {
                 CString::from_vec_unchecked(b"Construct Transaction Fail".to_vec()).into_raw()
+            },
+            Error::InvalidSecret => unsafe {
+                CString::from_vec_unchecked(b"Construct Secret Key".to_vec()).into_raw()
             },
         }
     }

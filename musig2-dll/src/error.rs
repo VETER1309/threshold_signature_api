@@ -69,7 +69,7 @@ impl From<NulError> for Error {
 }
 
 impl From<MastError> for Error {
-    fn from(e: MastError) -> Self {
+    fn from(_: MastError) -> Self {
         Self::NormalError
     }
 }

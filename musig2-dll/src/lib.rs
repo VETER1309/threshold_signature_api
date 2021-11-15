@@ -696,7 +696,7 @@ pub fn r_get_sighash(
 /// Construct Threshold address spending transaction.
 ///
 /// [`base_tx`]: tx with at least one input and one output.
-/// [`signature`]: signature of sighash
+/// [`agg_signature`]: aggregate signature of sighash
 /// [`agg_pubkey`]: signature corresponding to the aggregate public key.
 /// [`control`]: control script.
 /// [`input_index`]: index of the input in base_tx.
@@ -707,12 +707,12 @@ pub fn r_get_sighash(
 #[no_mangle]
 pub extern "C" fn build_raw_scirpt_tx(
     base_tx: *const c_char,
-    signature: *const c_char,
+    agg_signature: *const c_char,
     agg_pubkey: *const c_char,
     control: *const c_char,
     input_index: usize,
 ) -> *mut c_char {
-    match r_build_raw_scirpt_tx(base_tx, signature, agg_pubkey, control, input_index) {
+    match r_build_raw_scirpt_tx(base_tx, agg_signature, agg_pubkey, control, input_index) {
         Ok(tx) => tx,
         Err(_) => Error::ConstructTxFail.into(),
     }
@@ -769,6 +769,27 @@ pub fn r_build_raw_scirpt_tx(
     Ok(c_tx_str.into_raw())
 }
 
+/// Construct normal taproot address spending transaction.
+///
+/// [`base_tx`]: tx with at least one input and one output.
+/// [`signature`]: signature of sighash
+/// [`input_index`]: index of the input in base_tx.
+///
+/// Returns: String.
+/// Return the tx hex string.
+/// Possible error string returned is `Construct Tx Fail`.
+#[no_mangle]
+pub extern "C" fn build_raw_key_tx(
+    base_tx: *const c_char,
+    signature: *const c_char,
+    input_index: usize,
+) -> *mut c_char {
+    match r_build_raw_key_tx(base_tx, signature, input_index) {
+        Ok(tx) => tx,
+        Err(_) => Error::ConstructTxFail.into(),
+    }
+}
+
 pub fn r_build_raw_key_tx(
     base_tx: *const c_char,
     signature: *const c_char,
@@ -801,6 +822,27 @@ pub fn r_build_raw_key_tx(
     Ok(c_tx_str.into_raw())
 }
 
+/// Generate schnorr signature.
+///
+/// [`message`]: waiting for signed message.
+/// [`privkey`]: private key
+/// [`aux`]: auxiliary random data.
+///
+/// Returns: String.
+/// Return the signature hex string.
+/// Possible error string returned is `Invalid Signature`.
+#[no_mangle]
+pub extern "C" fn generate_schnorr_signature(
+    message: *const c_char,
+    privkey: *const c_char,
+    aux: *const c_char,
+) -> *mut c_char {
+    match r_generate_schnorr_signature(message, privkey, aux) {
+        Ok(d) => d,
+        Err(_) => Error::InvalidSignature.into(),
+    }
+}
+
 pub fn r_generate_schnorr_signature(
     message: *const c_char,
     privkey: *const c_char,
@@ -817,20 +859,73 @@ pub fn r_generate_schnorr_signature(
     Ok(c_tx_str.into_raw())
 }
 
-pub fn r_get_my_privkey(phrase: *const c_char) -> Result<*mut c_char, Error> {
-    let phrase = unsafe {
+/// Generate private key from mnemonic
+///
+/// [`phrase`]: root phrase
+/// [`pd_passphrase`]: pass phrase
+///
+/// Returns: String.
+/// Return the private key hex string.
+/// Possible error string returned is `Construct Secret Key`.
+#[no_mangle]
+pub extern "C" fn get_my_privkey(
+    phrase: *const c_char,
+    pd_passphrase: *const c_char,
+) -> *mut c_char {
+    match r_get_my_privkey(phrase, pd_passphrase) {
+        Ok(d) => d,
+        Err(_) => Error::InvalidSecret.into(),
+    }
+}
+
+pub fn r_get_my_privkey(
+    phrase: *const c_char,
+    pd_passphrase: *const c_char,
+) -> Result<*mut c_char, Error> {
+    let (phrase, pd_passphrase) = unsafe {
         if phrase.is_null() {
             return Err(Error::InvalidPhrase);
         }
-        CStr::from_ptr(phrase)
+        if pd_passphrase.is_null() {
+            return Err(Error::InvalidPhrase);
+        }
+        (CStr::from_ptr(phrase), CStr::from_ptr(pd_passphrase))
     };
     let phrase = phrase.to_str()?;
-
+    let pd_passphrase = pd_passphrase.to_str()?;
     let m = Mnemonic::from_str(phrase)?;
-    // default phrase seed (no passphrase)
-    let seed = m.to_seed(Some(""));
+    let seed = m.to_seed(Some(pd_passphrase));
     let privkey = &seed.0[..32];
     let c_tx_str = CString::new(hex::encode(privkey))?;
+    Ok(c_tx_str.into_raw())
+}
+
+/// Generate scirpt pubkey from address
+///
+/// [`addr`]: input address
+///
+/// Returns: String.
+/// Return the scirpt pubkey hex string.
+/// Possible error string returned is `Invalid Address`.
+#[no_mangle]
+pub extern "C" fn get_scirpt_pubkey(addr: *const c_char) -> *mut c_char {
+    match r_get_scirpt_pubkey(addr) {
+        Ok(d) => d,
+        Err(_) => Error::InvalidAddr.into(),
+    }
+}
+
+pub fn r_get_scirpt_pubkey(addr: *const c_char) -> Result<*mut c_char, Error> {
+    let c_addr = unsafe {
+        if addr.is_null() {
+            return Err(Error::InvalidAddr);
+        }
+        CStr::from_ptr(addr)
+    };
+    let r_addr = c_addr.to_str()?;
+    let addr: Address = r_addr.parse().map_err(|_| Error::InvalidAddr)?;
+    let scirpt_pubkey: Bytes = Builder::build_address_types(&addr).into();
+    let c_tx_str = CString::new(hex::encode(&scirpt_pubkey))?;
     Ok(c_tx_str.into_raw())
 }
 
@@ -866,14 +961,36 @@ mod tests {
     }
 
     #[test]
+    fn test_generate_script_pubkey_should_work() {
+        // Signet addr
+        let addr = CString::new("tb1pn202yeugfa25nssxk2hv902kmxrnp7g9xt487u256n20jgahuwasdcjfdw")
+            .unwrap()
+            .into_raw();
+        let script_pubkey = r_get_scirpt_pubkey(addr).unwrap();
+        assert_eq!(
+            convert_char_to_str(script_pubkey),
+            "51209a9ea267884f5549c206b2aec2bd56d98730f90532ea7f7154d4d4f923b7e3bb"
+        );
+        // Mainnet addr
+        let addr = CString::new("12dRugNcdxK39288NjcDV4GX7rMsKCGn6B")
+            .unwrap()
+            .into_raw();
+        let script_pubkey = r_get_scirpt_pubkey(addr).unwrap();
+        assert_eq!(
+            convert_char_to_str(script_pubkey),
+            "76a91411dbe48cc6b617f9c6adaf4d9ed5f625b1c7cb5988ac"
+        );
+    }
+
+    #[test]
     fn test_multiparty_signing() {
         let phrase_0 = CString::new(PHRASE0).unwrap().into_raw();
         let phrase_1 = CString::new(PHRASE1).unwrap().into_raw();
         let phrase_2 = CString::new(PHRASE2).unwrap().into_raw();
-
-        let privkey_a = r_get_my_privkey(phrase_0).unwrap();
-        let privkey_b = r_get_my_privkey(phrase_1).unwrap();
-        let privkey_c = r_get_my_privkey(phrase_2).unwrap();
+        let pd_passphrase = CString::new("").unwrap().into_raw();
+        let privkey_a = r_get_my_privkey(phrase_0, pd_passphrase).unwrap();
+        let privkey_b = r_get_my_privkey(phrase_1, pd_passphrase).unwrap();
+        let privkey_c = r_get_my_privkey(phrase_2, pd_passphrase).unwrap();
         let msg = CString::new(MESSAGE).unwrap().into_raw();
 
         let pubkey_a = get_my_pubkey(privkey_a);

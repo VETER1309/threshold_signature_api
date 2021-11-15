@@ -3,6 +3,7 @@ mod error;
 use std::{
     ffi::{CStr, CString},
     ptr::null_mut,
+    str::FromStr,
 };
 
 use self::error::Error;
@@ -17,7 +18,8 @@ use light_bitcoin::{
     serialization::{serialize_with_flags, SERIALIZE_TRANSACTION_WITNESS},
 };
 use musig2::{sign_double_prime, KeyAgg, KeyPair, Nv, PrivateKey, PublicKey, State, StatePrime};
-use std::str::FromStr;
+
+use rand_core::{OsRng, RngCore};
 
 const PUBLICKEY_NORMAL_SIZE: usize = 65;
 const ROUND1_MSG_SIZE: usize = Nv * PUBLICKEY_NORMAL_SIZE;
@@ -833,7 +835,6 @@ pub fn r_build_raw_key_tx(
 ///
 /// [`message`]: waiting for signed message.
 /// [`privkey`]: private key
-/// [`aux`]: auxiliary random data.
 ///
 /// Returns: String.
 /// Return the signature hex string.
@@ -842,9 +843,8 @@ pub fn r_build_raw_key_tx(
 pub extern "C" fn generate_schnorr_signature(
     message: *const c_char,
     privkey: *const c_char,
-    aux: *const c_char,
 ) -> *mut c_char {
-    match r_generate_schnorr_signature(message, privkey, aux) {
+    match r_generate_schnorr_signature(message, privkey) {
         Ok(d) => d,
         Err(_) => Error::InvalidSignature.into(),
     }
@@ -853,9 +853,10 @@ pub extern "C" fn generate_schnorr_signature(
 pub fn r_generate_schnorr_signature(
     message: *const c_char,
     privkey: *const c_char,
-    aux: *const c_char,
 ) -> Result<*mut c_char, Error> {
-    let aux = H256::from_slice(&c_char_to_r_bytes(aux)?);
+    let mut key: [u8; 32] = [0u8; 32];
+    OsRng.fill_bytes(&mut key);
+    let aux = H256::from_slice(&key);
     let message = H256::from_slice(&c_char_to_r_bytes(message)?);
     let privkey = secp256k1::SecretKey::parse_slice(&c_char_to_r_bytes(privkey)?)
         .map_err(|_| Error::InvalidSecret)?;
@@ -1281,11 +1282,8 @@ mod tests {
         let sighash = r_get_sighash(prev_tx, base_tx, input_index, agg_pubkey, 0).unwrap();
 
         let msg = convert_char_to_str(sighash);
-        let aux = CString::new("0000000000000000000000000000000000000000000000000000000000000000")
-            .unwrap()
-            .into_raw();
 
-        let signature = r_generate_schnorr_signature(sighash, privkey_c, aux).unwrap();
+        let signature = r_generate_schnorr_signature(sighash, privkey_c).unwrap();
         let pubkey_c = PublicKey::parse_slice(&c_char_to_r_bytes(pubkey_c).unwrap()).unwrap();
 
         assert!(verify(

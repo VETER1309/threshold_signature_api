@@ -30,6 +30,14 @@ pub enum Error {
     InvalidSignature,
     // invaild sigversion
     InvalidSigversion,
+    // invalid tx input
+    InvalidTxInput,
+    // invalid tx output
+    InvalidTxOutput,
+    // compute sighash fail
+    ComputeSighashFail,
+    // construct tx fail
+    ConstructTxFail,
 }
 
 impl From<Utf8Error> for Error {
@@ -99,6 +107,18 @@ impl From<Error> for *mut i8 {
             },
             Error::InvalidSigversion => unsafe {
                 CString::from_vec_unchecked(b"Invalid Sigversion".to_vec()).into_raw()
+            },
+            Error::InvalidTxInput => unsafe {
+                CString::from_vec_unchecked(b"Invalid Transaction Input".to_vec()).into_raw()
+            },
+            Error::InvalidTxOutput => unsafe {
+                CString::from_vec_unchecked(b"Invalid Transaction Output".to_vec()).into_raw()
+            },
+            Error::ComputeSighashFail => unsafe {
+                CString::from_vec_unchecked(b"Compute Sighash Fail".to_vec()).into_raw()
+            },
+            Error::ConstructTxFail => unsafe {
+                CString::from_vec_unchecked(b"Construct Transaction Fail".to_vec()).into_raw()
             },
         }
     }

@@ -445,6 +445,19 @@ pub fn r_get_my_mast(pubkeys: *const c_char, threshold: usize) -> Result<Mast, E
     Ok(Mast::new(pubkeys, threshold)?)
 }
 
+/// Add the first input[txid + outpoint's index] to initialize basic transactions
+///
+/// Returns: String.
+/// Return the base tx hex string.
+/// Possible error string returned is `Invalid Transaction`.
+#[no_mangle]
+pub extern "C" fn get_base_tx(txid: *const c_char, index: u32) -> *mut c_char {
+    match r_get_base_tx(txid, index) {
+        Ok(tx) => tx,
+        Err(_) => Error::InvalidTransaction.into(),
+    }
+}
+
 // Construct a base transaction
 pub fn r_get_base_tx(txid: *const c_char, index: u32) -> Result<*mut c_char, Error> {
     let mut tx = Transaction {
@@ -473,6 +486,23 @@ pub fn r_get_base_tx(txid: *const c_char, index: u32) -> Result<*mut c_char, Err
     let tx_hex = hex::encode(serialize_with_flags(&tx, SERIALIZE_TRANSACTION_WITNESS));
     let c_tx_str = CString::new(tx_hex)?;
     Ok(c_tx_str.into_raw())
+}
+
+/// Passing the tx and input[txid + outpoint's index]
+///
+/// Returns: String.
+/// Return the tx hex string.
+/// Possible error string returned is `Invalid Tx Input`.
+#[no_mangle]
+pub extern "C" fn add_input(
+    base_tx: *const c_char,
+    txid: *const c_char,
+    index: u32,
+) -> *mut c_char {
+    match r_add_input(base_tx, txid, index) {
+        Ok(tx) => tx,
+        Err(_) => Error::InvalidTxInput.into(),
+    }
 }
 
 pub fn r_add_input(
@@ -517,6 +547,23 @@ pub fn r_add_input(
     Ok(c_tx_str.into_raw())
 }
 
+/// Passing the tx and output[address + amount]
+///
+/// Returns: String.
+/// Return the tx hex string.
+/// Possible error string returned is `Invalid Tx Output`.
+#[no_mangle]
+pub extern "C" fn add_output(
+    base_tx: *const c_char,
+    address: *const c_char,
+    amount: u64,
+) -> *mut c_char {
+    match r_add_output(base_tx, address, amount) {
+        Ok(tx) => tx,
+        Err(_) => Error::InvalidTxOutput.into(),
+    }
+}
+
 pub fn r_add_output(
     base_tx: *const c_char,
     addr: *const c_char,
@@ -559,6 +606,25 @@ pub fn r_add_output(
     ));
     let c_tx_str = CString::new(tx_hex)?;
     Ok(c_tx_str.into_raw())
+}
+
+/// Passing the previous transaction and the constructed transaction
+/// and the previous transaction outpoint index to calculate Sighash.
+/// sigversion: 0 or 1, 0 is Taproot, 1 is Tapscript.
+/// Returns: String.
+/// Return the sighash.
+/// Possible error string returned is `Compute Sighash Fail`.
+#[no_mangle]
+pub extern "C" fn get_sighash(
+    prev_tx: *const c_char,
+    tx: *const c_char,
+    index: u32,
+    sigversion: u32,
+) -> *mut c_char {
+    match r_get_sighash(prev_tx, tx, index as usize, sigversion) {
+        Ok(tx) => tx,
+        Err(_) => Error::ComputeSighashFail.into(),
+    }
 }
 
 // Compute a signature hash for schnorr
@@ -614,6 +680,31 @@ pub fn r_get_sighash(
     let sighash_hex = hex::encode(&sighash);
     let c_sighash_str = CString::new(sighash_hex)?;
     Ok(c_sighash_str.into_raw())
+}
+
+/// Construct Threshold address spending transaction.
+///
+/// [`base_tx`]: tx with at least one input and one output.
+/// [`signature`]: signature of sighash
+/// [`agg_pubkey`]: signature corresponding to the aggregate public key.
+/// [`control`]: control script.
+/// [`input_index`]: index of the input in base_tx.
+///
+/// Returns: String.
+/// Return the tx hex string.
+/// Possible error string returned is `Construct Tx Fail`.
+#[no_mangle]
+pub extern "C" fn build_raw_scirpt_tx(
+    base_tx: *const c_char,
+    signature: *const c_char,
+    agg_pubkey: *const c_char,
+    control: *const c_char,
+    input_index: usize,
+) -> *mut c_char {
+    match r_build_raw_scirpt_tx(base_tx, signature, agg_pubkey, control, input_index) {
+        Ok(tx) => tx,
+        Err(_) => Error::ConstructTxFail.into(),
+    }
 }
 
 pub fn r_build_raw_scirpt_tx(

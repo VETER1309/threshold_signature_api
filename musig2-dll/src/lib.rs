@@ -516,11 +516,7 @@ pub fn r_get_base_tx(env: JNIEnv, txid: JString, index: u32) -> Result<jstring, 
         lock_time: 0,
     };
 
-    let r_txid: String = env
-        .get_string(txid)
-        .map_err(|_| Error::InvalidTransaction)?
-        .into();
-    let r_txid = r_txid.as_bytes();
+    let r_txid = c_char_to_r_bytes(env, txid)?;
 
     if r_txid.len() != 32 {
         return Err(Error::InvalidTxid);
@@ -572,11 +568,7 @@ pub fn r_add_input(
 
     let mut base_tx: Transaction = base_tx.parse().map_err(|_| Error::InvalidTransaction)?;
 
-    let r_txid: String = env
-        .get_string(txid)
-        .map_err(|_| Error::InvalidTransaction)?
-        .into();
-    let r_txid = r_txid.as_bytes();
+    let r_txid = c_char_to_r_bytes(env, txid)?;
 
     if r_txid.len() != 32 {
         return Err(Error::InvalidTxid);
@@ -640,7 +632,7 @@ pub fn r_add_output(
         let addr: Address = address.parse().map_err(|_| Error::InvalidAddress)?;
         Builder::build_address_types(&addr).into()
     } else {
-        Builder::build_nulldata(address.as_bytes()).into()
+        Builder::build_nulldata(&hex::decode(address)?).into()
     };
 
     let output = TransactionOutput {

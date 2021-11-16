@@ -495,7 +495,7 @@ pub fn r_get_my_mast(env: JNIEnv, pubkeys: JString, threshold: usize) -> Result<
 /// Return the base tx hex string.
 /// Possible error string returned is `Invalid Transaction`.
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig2_Transaction_get_base_tx(
+pub extern "system" fn Java_com_chainx_musig2_Transaction_get_1base_1tx(
     env: JNIEnv,
     _class: JClass,
     txid: JString,
@@ -546,7 +546,7 @@ pub fn r_get_base_tx(env: JNIEnv, txid: JString, index: u32) -> Result<jstring, 
 /// Return the tx hex string.
 /// Possible error string returned is `Invalid Tx Input`.
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig2_Transaction_add_input(
+pub extern "system" fn Java_com_chainx_musig2_Transaction_add_1input(
     env: JNIEnv,
     _class: JClass,
     base_tx: JString,
@@ -605,7 +605,7 @@ pub fn r_add_input(
 /// Return the tx hex string.
 /// Possible error string returned is `Invalid Tx Output`.
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig2_Transaction_add_output(
+pub extern "system" fn Java_com_chainx_musig2_Transaction_add_1output(
     env: JNIEnv,
     _class: JClass,
     base_tx: JString,
@@ -663,7 +663,7 @@ pub fn r_add_output(
 /// Return the sighash.
 /// Possible error string returned is `Compute Sighash Fail`.
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig2_Transaction_get_sighash(
+pub extern "system" fn Java_com_chainx_musig2_Transaction_get_1sighash(
     env: JNIEnv,
     _class: JClass,
     prev_tx: JString,
@@ -751,7 +751,7 @@ pub fn r_get_sighash(
 /// Return the tx hex string.
 /// Possible error string returned is `Construct Tx Fail`.
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig2_Transaction_build_raw_scirpt_tx(
+pub extern "system" fn Java_com_chainx_musig2_Transaction_build_1raw_1scirpt_1tx(
     env: JNIEnv,
     _class: JClass,
     base_tx: JString,
@@ -829,7 +829,7 @@ pub fn r_build_raw_scirpt_tx(
 /// Return the tx hex string.
 /// Possible error string returned is `Construct Tx Fail`.
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig2_Transaction_build_raw_key_tx(
+pub extern "system" fn Java_com_chainx_musig2_Transaction_build_1raw_1key_1tx(
     env: JNIEnv,
     _class: JClass,
     base_tx: JString,
@@ -879,7 +879,7 @@ pub fn r_build_raw_key_tx(
 /// Return the signature hex string.
 /// Possible error string returned is `Invalid Signature`.
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig2_Transaction_generate_schnorr_signature(
+pub extern "system" fn Java_com_chainx_musig2_Transaction_generate_1schnorr_1signature(
     env: JNIEnv,
     _class: JClass,
     message: JString,
@@ -918,7 +918,7 @@ pub fn r_generate_schnorr_signature(
 /// Return the private key hex string.
 /// Possible error string returned is `Construct Secret Key`.
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig2_Transaction_get_my_privkey(
+pub extern "system" fn Java_com_chainx_musig2_Transaction_get_1my_1privkey(
     env: JNIEnv,
     _class: JClass,
     phrase: JString,
@@ -958,7 +958,7 @@ pub fn r_get_my_privkey(
 /// Return the scirpt pubkey hex string.
 /// Possible error string returned is `Invalid Address`.
 #[no_mangle]
-pub extern "system" fn Java_com_chainx_musig2_Transaction_get_scirpt_pubkey(
+pub extern "system" fn Java_com_chainx_musig2_Transaction_get_1scirpt_1pubkey(
     env: JNIEnv,
     _class: JClass,
     addr: JString,

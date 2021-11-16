@@ -612,10 +612,9 @@ pub fn r_add_output(
 
 /// Passing the previous transaction and the constructed transaction
 /// and the previous transaction outpoint index to calculate Sighash.
-/// agg_pubkey: required when spending by script, pass in a null value when spending by path
-/// sigversion: 0 or 1, 0 is Taproot, 1 is Tapscript.
-/// Returns: String.
-/// Return the sighash.
+/// [`agg_pubkey`]: required when spending by script, pass in a null value when spending by path
+/// [`sigversion`]: 0 or 1, 0 is Taproot, 1 is Tapscript.
+/// Returns: sighash string.
 /// Possible error string returned is `Compute Sighash Fail`.
 #[no_mangle]
 pub extern "C" fn get_sighash(
@@ -704,7 +703,6 @@ pub fn r_get_sighash(
 /// [`control`]: control script.
 /// [`input_index`]: index of the input in base_tx.
 ///
-/// Returns: String.
 /// Return the tx hex string.
 /// Possible error string returned is `Construct Tx Fail`.
 #[no_mangle]
@@ -784,7 +782,6 @@ pub fn r_build_raw_scirpt_tx(
 /// [`signature`]: signature of sighash
 /// [`input_index`]: index of the input in base_tx.
 ///
-/// Returns: String.
 /// Return the tx hex string.
 /// Possible error string returned is `Construct Tx Fail`.
 #[no_mangle]
@@ -836,7 +833,6 @@ pub fn r_build_raw_key_tx(
 /// [`message`]: waiting for signed message.
 /// [`privkey`]: private key
 ///
-/// Returns: String.
 /// Return the signature hex string.
 /// Possible error string returned is `Invalid Signature`.
 #[no_mangle]
@@ -872,7 +868,6 @@ pub fn r_generate_schnorr_signature(
 /// [`phrase`]: root phrase
 /// [`pd_passphrase`]: pass phrase
 ///
-/// Returns: String.
 /// Return the private key hex string.
 /// Possible error string returned is `Construct Secret Key`.
 #[no_mangle]
@@ -912,7 +907,6 @@ pub fn r_get_my_privkey(
 ///
 /// [`addr`]: input address
 ///
-/// Returns: String.
 /// Return the scirpt pubkey hex string.
 /// Possible error string returned is `Invalid Address`.
 #[no_mangle]

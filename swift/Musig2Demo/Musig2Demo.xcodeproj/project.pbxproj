@@ -7,8 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		78A791752742A18E00C935D0 /* Musig2.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 78A791742742A18E00C935D0 /* Musig2.xcframework */; };
-		78A791762742A18E00C935D0 /* Musig2.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 78A791742742A18E00C935D0 /* Musig2.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		78A7917F274343CB00C935D0 /* Musig2 in Frameworks */ = {isa = PBXBuildFile; productRef = 78A7917E274343CB00C935D0 /* Musig2 */; };
 		78AF05A52719E42F00C5225A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78AF05A42719E42F00C5225A /* AppDelegate.swift */; };
 		78AF05A72719E42F00C5225A /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78AF05A62719E42F00C5225A /* SceneDelegate.swift */; };
 		78AF05A92719E42F00C5225A /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78AF05A82719E42F00C5225A /* ViewController.swift */; };
@@ -44,7 +43,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				78A791762742A18E00C935D0 /* Musig2.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -52,7 +50,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		78A791742742A18E00C935D0 /* Musig2.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = Musig2.xcframework; path = ../../../../../Desktop/Musig2.xcframework; sourceTree = "<group>"; };
 		78AF05A12719E42F00C5225A /* Musig2Demo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Musig2Demo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		78AF05A42719E42F00C5225A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		78AF05A62719E42F00C5225A /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -73,7 +70,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				78A791752742A18E00C935D0 /* Musig2.xcframework in Frameworks */,
+				78A7917F274343CB00C935D0 /* Musig2 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -94,14 +91,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		78A791702742953300C935D0 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				78A791742742A18E00C935D0 /* Musig2.xcframework */,
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
 		78AF05982719E42F00C5225A = {
 			isa = PBXGroup;
 			children = (
@@ -109,7 +98,6 @@
 				78AF05BA2719E43100C5225A /* Musig2DemoTests */,
 				78AF05C42719E43100C5225A /* Musig2DemoUITests */,
 				78AF05A22719E42F00C5225A /* Products */,
-				78A791702742953300C935D0 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -172,6 +160,7 @@
 			);
 			name = Musig2Demo;
 			packageProductDependencies = (
+				78A7917E274343CB00C935D0 /* Musig2 */,
 			);
 			productName = Musig2Demo;
 			productReference = 78AF05A12719E42F00C5225A /* Musig2Demo.app */;
@@ -246,6 +235,7 @@
 			);
 			mainGroup = 78AF05982719E42F00C5225A;
 			packageReferences = (
+				78A7917D274343CB00C935D0 /* XCRemoteSwiftPackageReference "musig2-ios-api" */,
 			);
 			productRefGroup = 78AF05A22719E42F00C5225A /* Products */;
 			projectDirPath = "";
@@ -654,6 +644,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		78A7917D274343CB00C935D0 /* XCRemoteSwiftPackageReference "musig2-ios-api" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/chainx-org/musig2-ios-api";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		78A7917E274343CB00C935D0 /* Musig2 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 78A7917D274343CB00C935D0 /* XCRemoteSwiftPackageReference "musig2-ios-api" */;
+			productName = Musig2;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 78AF05992719E42F00C5225A /* Project object */;
 }

@@ -13,7 +13,7 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
-        
+
         // Aggregate signature generation
         let PHRASE0 = "flame flock chunk trim modify raise rough client coin busy income smile";
         let PHRASE1 =
@@ -42,14 +42,14 @@ class ViewController: UIViewController {
         let pubkey = getAggPublicKey(pubkeys: [pubkey0, pubkey1, pubkey2])
         print("signature:", signature)
         print("pubkey:", pubkey)
-        
+
         // Use Mast to generate addresses and control blocks
         let pubkey01 = getAggPublicKey(pubkeys: [pubkey0, pubkey1])
         let threshold_pubkey = generateThresholdPubkey(pubkeys: [pubkey0, pubkey1, pubkey2], threshold: 2, network: "mainnet");
         let control_block = generateControlBlock(pubkeys: [pubkey0, pubkey1, pubkey2], threshold: 2, agg_pubkey: pubkey01)
         print("threshold_pubkey:", threshold_pubkey)
         print("control_block:", control_block)
-        
+
         // Generate taproot tx
         let private_char = "4a84a4601e463bc02dd0b8be03f3721187e9fc3105d5d5e8930ff3c8ca15cf40";
         let prev_tx = "020000000001014be640313b023c3c731b7e89c3f97bebcebf9772ea2f7747e5604f4483a447b601000000000000000002a0860100000000002251209a9ea267884f5549c206b2aec2bd56d98730f90532ea7f7154d4d4f923b7e3bbc027090000000000225120c9929543dfa1e0bb84891acd47bfa6546b05e26b7a04af8eb6765fcc969d565f01404dc68b31efc1468f84db7e9716a84c19bbc53c2d252fd1d72fa6469e860a74486b0990332b69718dbcb5acad9d48634d23ee9c215ab15fb16f4732bed1770fdf00000000";
@@ -57,10 +57,6 @@ class ViewController: UIViewController {
         let indexs: [UInt32] = [1];
         let addresses: [String]  = ["tb1pn202yeugfa25nssxk2hv902kmxrnp7g9xt487u256n20jgahuwasdcjfdw", "35516a706f3772516e7751657479736167477a6334526a376f737758534c6d4d7141754332416255364c464646476a38", "tb1pexff2s7l58sthpyfrtx500ax234stcnt0gz2lr4kwe0ue95a2e0srxsc68"];
         let amounts: [UInt64] = [100000, 0, 400000];
-        var base_tx = String.init(cString:get_base_tx(txids[0], indexs[0]));
-        for i in 1..<txids.count {
-            base_tx = String.init(cString:add_input(base_tx, txids[i], indexs[i]));
-        }
         let tx = generateRawTx(txids: txids, indexs:indexs, addresses:addresses, amounts: amounts);
         let sighash = getSighash(prev_tx: prev_tx, tx: tx, input_index: 0, agg_pubkey: "", sigversion: 0);
         print("sighash:", sighash);
@@ -68,7 +64,7 @@ class ViewController: UIViewController {
         print("schnorr_signature:", schnorr_signature);
         let taproot_tx = buildTaprootTx(tx: tx, signature: schnorr_signature, input_index: 0);
         print("taproot_tx", taproot_tx);
-        
+
         // Generate Threshold tx
         let private_a = "e5bb018d70c6fb5dd8ad91f6c88fb0e6fdab2c482978c95bb3794ca6e2e50dc2";
         let private_b = "a7150e8f24ab26ebebddd831aeb8f00ecb593df3b80ae1e8b8be01351805f2d6";

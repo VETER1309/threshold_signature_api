@@ -664,7 +664,14 @@ pub extern "system" fn Java_com_chainx_musig2_Transaction_get_1sighash(
     agg_pubkey: JString,
     sigversion: jlong,
 ) -> jstring {
-    match r_get_sighash(env, prev_tx, tx, index as usize, agg_pubkey, sigversion) {
+    match r_get_sighash(
+        env,
+        prev_tx,
+        tx,
+        index as usize,
+        agg_pubkey,
+        sigversion as u32,
+    ) {
         Ok(tx) => tx,
         Err(_) => convert_string_to_jstring(env, Error::ComputeSighashFail.into()),
     }
@@ -677,7 +684,7 @@ pub fn r_get_sighash(
     tx: JString,
     input_index: usize,
     agg_pubkey: JString,
-    sigversion: jlong,
+    sigversion: u32,
 ) -> Result<jstring, Error> {
     let prev_tx: String = env
         .get_string(prev_tx)

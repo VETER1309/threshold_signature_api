@@ -27,6 +27,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf9ff0bbfd639f15c74af777d81383cf53efb7c93613f6cab67c6c11e05bbf8b"
 
 [[package]]
+name = "bip0039"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d0830ae4cc96b0617cc912970c2b17e89456fecbf55e8eed53a956f37ab50c41"
+dependencies = [
+ "hmac 0.11.0",
+ "pbkdf2",
+ "sha2 0.9.8",
+ "unicode-normalization",
+ "zeroize",
+]
+
+[[package]]
 name = "bitcoin-bech32"
 version = "0.12.1"
 source = "git+https://github.com/chainx-org/rust-bech32-bitcoin?branch=master#1de465d410c8f83e16409e71303b3389a82a3e50"
@@ -214,6 +227,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "crypto-mac"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1d1a86f49236c215f271d40892d5fc950490551400b02ef360692c29815c714"
+dependencies = [
+ "generic-array 0.14.4",
+ "subtle 2.4.1",
+]
+
+[[package]]
 name = "digest"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -329,8 +352,18 @@ version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5dcb5e64cda4c23119ab41ba960d1e170a774c8e4b9d9e6a9bc18aabf5e59695"
 dependencies = [
- "crypto-mac",
+ "crypto-mac 0.7.0",
  "digest 0.8.1",
+]
+
+[[package]]
+name = "hmac"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a2a2320eb7ec0ebe8da8f744d7812d9fc4cb4d09344ac01898dbcb6a20ae69b"
+dependencies = [
+ "crypto-mac 0.11.1",
+ "digest 0.9.0",
 ]
 
 [[package]]
@@ -341,7 +374,7 @@ checksum = "c6e570451493f10f6581b48cdd530413b63ea9e780f544bfd3bdcaa0d89d1a7b"
 dependencies = [
  "digest 0.8.1",
  "generic-array 0.12.4",
- "hmac",
+ "hmac 0.7.1",
 ]
 
 [[package]]
@@ -419,7 +452,7 @@ dependencies = [
 [[package]]
 name = "light-bitcoin"
 version = "0.2.0"
-source = "git+https://github.com/chainx-org/light-bitcoin?branch=support-schnorr-test#627198765a35ffc023f195ef18b4af9d7f80a6ce"
+source = "git+https://github.com/chainx-org/light-bitcoin?branch=taproot#043d410330c4df62f452047ff5068ee7dfdcbcfc"
 dependencies = [
  "light-bitcoin-chain",
  "light-bitcoin-crypto",
@@ -434,7 +467,7 @@ dependencies = [
 [[package]]
 name = "light-bitcoin-chain"
 version = "0.2.0"
-source = "git+https://github.com/chainx-org/light-bitcoin?branch=support-schnorr-test#627198765a35ffc023f195ef18b4af9d7f80a6ce"
+source = "git+https://github.com/chainx-org/light-bitcoin?branch=taproot#043d410330c4df62f452047ff5068ee7dfdcbcfc"
 dependencies = [
  "hex",
  "light-bitcoin-crypto",
@@ -447,7 +480,7 @@ dependencies = [
 [[package]]
 name = "light-bitcoin-crypto"
 version = "0.2.0"
-source = "git+https://github.com/chainx-org/light-bitcoin?branch=support-schnorr-test#627198765a35ffc023f195ef18b4af9d7f80a6ce"
+source = "git+https://github.com/chainx-org/light-bitcoin?branch=taproot#043d410330c4df62f452047ff5068ee7dfdcbcfc"
 dependencies = [
  "digest 0.9.0",
  "light-bitcoin-primitives",
@@ -460,8 +493,9 @@ dependencies = [
 [[package]]
 name = "light-bitcoin-keys"
 version = "0.2.0"
-source = "git+https://github.com/chainx-org/light-bitcoin?branch=support-schnorr-test#627198765a35ffc023f195ef18b4af9d7f80a6ce"
+source = "git+https://github.com/chainx-org/light-bitcoin?branch=taproot#043d410330c4df62f452047ff5068ee7dfdcbcfc"
 dependencies = [
+ "arrayref",
  "bitcoin-bech32",
  "bs58",
  "digest 0.9.0",
@@ -479,7 +513,7 @@ dependencies = [
 [[package]]
 name = "light-bitcoin-mast"
 version = "0.2.0"
-source = "git+https://github.com/chainx-org/light-bitcoin?branch=support-schnorr-test#627198765a35ffc023f195ef18b4af9d7f80a6ce"
+source = "git+https://github.com/chainx-org/light-bitcoin?branch=taproot#043d410330c4df62f452047ff5068ee7dfdcbcfc"
 dependencies = [
  "arrayref",
  "bitcoin-bech32",
@@ -498,7 +532,7 @@ dependencies = [
 [[package]]
 name = "light-bitcoin-merkle"
 version = "0.2.0"
-source = "git+https://github.com/chainx-org/light-bitcoin?branch=support-schnorr-test#627198765a35ffc023f195ef18b4af9d7f80a6ce"
+source = "git+https://github.com/chainx-org/light-bitcoin?branch=taproot#043d410330c4df62f452047ff5068ee7dfdcbcfc"
 dependencies = [
  "light-bitcoin-chain",
  "light-bitcoin-primitives",
@@ -509,7 +543,7 @@ dependencies = [
 [[package]]
 name = "light-bitcoin-primitives"
 version = "0.2.0"
-source = "git+https://github.com/chainx-org/light-bitcoin?branch=support-schnorr-test#627198765a35ffc023f195ef18b4af9d7f80a6ce"
+source = "git+https://github.com/chainx-org/light-bitcoin?branch=taproot#043d410330c4df62f452047ff5068ee7dfdcbcfc"
 dependencies = [
  "byteorder",
  "fixed-hash 0.7.0",
@@ -523,7 +557,7 @@ dependencies = [
 [[package]]
 name = "light-bitcoin-script"
 version = "0.2.0"
-source = "git+https://github.com/chainx-org/light-bitcoin?branch=support-schnorr-test#627198765a35ffc023f195ef18b4af9d7f80a6ce"
+source = "git+https://github.com/chainx-org/light-bitcoin?branch=taproot#043d410330c4df62f452047ff5068ee7dfdcbcfc"
 dependencies = [
  "hex",
  "libsecp256k1",
@@ -538,7 +572,7 @@ dependencies = [
 [[package]]
 name = "light-bitcoin-serialization"
 version = "0.2.0"
-source = "git+https://github.com/chainx-org/light-bitcoin?branch=support-schnorr-test#627198765a35ffc023f195ef18b4af9d7f80a6ce"
+source = "git+https://github.com/chainx-org/light-bitcoin?branch=taproot#043d410330c4df62f452047ff5068ee7dfdcbcfc"
 dependencies = [
  "light-bitcoin-primitives",
  "light-bitcoin-serialization-derive",
@@ -547,7 +581,7 @@ dependencies = [
 [[package]]
 name = "light-bitcoin-serialization-derive"
 version = "0.2.0"
-source = "git+https://github.com/chainx-org/light-bitcoin?branch=support-schnorr-test#627198765a35ffc023f195ef18b4af9d7f80a6ce"
+source = "git+https://github.com/chainx-org/light-bitcoin?branch=taproot#043d410330c4df62f452047ff5068ee7dfdcbcfc"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -598,11 +632,14 @@ dependencies = [
 name = "musig2-dll"
 version = "0.1.0"
 dependencies = [
+ "bip0039",
  "hex",
  "jni",
  "libsecp256k1",
  "light-bitcoin",
  "musig2",
+ "rand 0.8.4",
+ "rand_core 0.6.3",
  "serde",
  "serde_json",
 ]
@@ -652,6 +689,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "pbkdf2"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f05894bce6a1ba4be299d0c5f29563e08af2bc18bb7d48313113bed71e904739"
+dependencies = [
+ "crypto-mac 0.11.1",
 ]
 
 [[package]]
@@ -861,9 +907,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.69"
+version = "1.0.70"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e466864e431129c7e0d3476b92f20458e5879919a0596c6472738d9fa2d342f8"
+checksum = "e277c495ac6cd1a01a58d0a0c574568b4d1ddf14f59965c6a58b8d96400b54f3"
 dependencies = [
  "itoa",
  "ryu",
@@ -964,6 +1010,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinyvec"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c1c1d5a42b6245520c249549ec267180beaffcc0615401ac8e31853d4b6d8d2"
+dependencies = [
+ "tinyvec_macros",
+]
+
+[[package]]
+name = "tinyvec_macros"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
+
+[[package]]
 name = "toml"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -988,6 +1049,15 @@ dependencies = [
  "crunchy",
  "rustc-hex",
  "static_assertions",
+]
+
+[[package]]
+name = "unicode-normalization"
+version = "0.1.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d54590932941a9e9266f0832deed84ebe1bf2e4c9e4a3554d393d18f5e854bf9"
+dependencies = [
+ "tinyvec",
 ]
 
 [[package]]
@@ -1055,3 +1125,9 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "zeroize"
+version = "1.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d68d9dcec5f9b43a30d38c49f91dfedfaac384cb8f085faca366c26207dd1619"

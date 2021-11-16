@@ -1,5 +1,9 @@
 mod error;
 
+use rand_core::{OsRng, RngCore};
+use std::str::FromStr;
+
+use bip0039::Mnemonic;
 // This is the interface to the JVM that we'll
 // call the majority of our methods on.
 use jni::JNIEnv;
@@ -12,6 +16,14 @@ use jni::objects::{JClass, JString};
 // We can't return one of the objects with lifetime information because the
 // lifetime checker won't let us.
 use jni::sys::{jint, jlong, jstring};
+use light_bitcoin::chain::{
+    hash_rev, Bytes, OutPoint, Transaction, TransactionInput, TransactionOutput, H256,
+};
+use light_bitcoin::keys::{sign_with_aux, Address};
+use light_bitcoin::script::{
+    Builder, Opcode, ScriptExecutionData, SignatureVersion, TransactionInputSigner,
+};
+use light_bitcoin::serialization::{serialize_with_flags, SERIALIZE_TRANSACTION_WITNESS};
 
 use self::error::Error;
 use light_bitcoin::mast::Mast;
@@ -475,4 +487,495 @@ pub fn r_get_my_mast(env: JNIEnv, pubkeys: JString, threshold: usize) -> Result<
     }
 
     Ok(Mast::new(pubkeys, threshold)?)
+}
+
+/// Add the first input[txid + outpoint's index] to initialize basic transactions
+///
+/// Returns: String.
+/// Return the base tx hex string.
+/// Possible error string returned is `Invalid Transaction`.
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig2_Transaction_get_base_tx(
+    env: JNIEnv,
+    _class: JClass,
+    txid: JString,
+    index: jlong,
+) -> jstring {
+    match r_get_base_tx(env, txid, index as u32) {
+        Ok(tx) => tx,
+        Err(_) => convert_string_to_jstring(env, Error::InvalidTransaction.into()),
+    }
+}
+
+// Construct a base transaction
+pub fn r_get_base_tx(env: JNIEnv, txid: JString, index: u32) -> Result<jstring, Error> {
+    let mut tx = Transaction {
+        version: 2,
+        inputs: vec![],
+        outputs: vec![],
+        lock_time: 0,
+    };
+
+    let r_txid: String = env
+        .get_string(txid)
+        .map_err(|_| Error::InvalidTransaction)?
+        .into();
+    let r_txid = r_txid.as_bytes();
+
+    if r_txid.len() != 32 {
+        return Err(Error::InvalidTxid);
+    }
+    let txid = hash_rev(H256::from_slice(&r_txid));
+
+    let input = TransactionInput {
+        previous_output: OutPoint { txid, index },
+        script_sig: Bytes::new(),
+        sequence: 0,
+        script_witness: vec![],
+    };
+
+    tx.inputs.push(input);
+
+    let tx_hex = hex::encode(serialize_with_flags(&tx, SERIALIZE_TRANSACTION_WITNESS));
+    Ok(convert_string_to_jstring(env, tx_hex))
+}
+
+/// Passing the tx and input[txid + outpoint's index]
+///
+/// Returns: String.
+/// Return the tx hex string.
+/// Possible error string returned is `Invalid Tx Input`.
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig2_Transaction_add_input(
+    env: JNIEnv,
+    _class: JClass,
+    base_tx: JString,
+    txid: JString,
+    index: jlong,
+) -> jstring {
+    match r_add_input(env, base_tx, txid, index as u32) {
+        Ok(tx) => tx,
+        Err(_) => convert_string_to_jstring(env, Error::InvalidTxInput.into()),
+    }
+}
+
+pub fn r_add_input(
+    env: JNIEnv,
+    base_tx: JString,
+    txid: JString,
+    index: u32,
+) -> Result<jstring, Error> {
+    let base_tx: String = env
+        .get_string(base_tx)
+        .map_err(|_| Error::InvalidTxInput)?
+        .into();
+
+    let mut base_tx: Transaction = base_tx.parse().map_err(|_| Error::InvalidTransaction)?;
+
+    let r_txid: String = env
+        .get_string(txid)
+        .map_err(|_| Error::InvalidTransaction)?
+        .into();
+    let r_txid = r_txid.as_bytes();
+
+    if r_txid.len() != 32 {
+        return Err(Error::InvalidTxid);
+    }
+
+    let txid = hash_rev(H256::from_slice(&r_txid));
+
+    let input = TransactionInput {
+        previous_output: OutPoint { txid, index },
+        script_sig: Bytes::new(),
+        sequence: 0,
+        script_witness: vec![],
+    };
+
+    base_tx.inputs.push(input);
+    let tx_hex = hex::encode(serialize_with_flags(
+        &base_tx,
+        SERIALIZE_TRANSACTION_WITNESS,
+    ));
+    Ok(convert_string_to_jstring(env, tx_hex))
+}
+
+/// Passing the tx and output[address + amount]
+///
+/// Returns: String.
+/// Return the tx hex string.
+/// Possible error string returned is `Invalid Tx Output`.
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig2_Transaction_add_output(
+    env: JNIEnv,
+    _class: JClass,
+    base_tx: JString,
+    address: JString,
+    amount: jlong,
+) -> jstring {
+    match r_add_output(env, base_tx, address, amount as u64) {
+        Ok(tx) => tx,
+        Err(_) => convert_string_to_jstring(env, Error::InvalidTxOutput.into()),
+    }
+}
+
+pub fn r_add_output(
+    env: JNIEnv,
+    base_tx: JString,
+    addr: JString,
+    value: u64,
+) -> Result<jstring, Error> {
+    let base_tx: String = env
+        .get_string(base_tx)
+        .map_err(|_| Error::InvalidTxInput)?
+        .into();
+
+    let mut base_tx: Transaction = base_tx.parse().map_err(|_| Error::InvalidTransaction)?;
+
+    let address: String = env
+        .get_string(addr)
+        .map_err(|_| Error::InvalidTxOutput)?
+        .into();
+
+    let script_pubkey: Bytes = if value > 0 {
+        let addr: Address = address.parse().map_err(|_| Error::InvalidAddress)?;
+        Builder::build_address_types(&addr).into()
+    } else {
+        Builder::build_nulldata(address.as_bytes()).into()
+    };
+
+    let output = TransactionOutput {
+        value,
+        script_pubkey,
+    };
+    base_tx.outputs.push(output);
+    let tx_hex = hex::encode(serialize_with_flags(
+        &base_tx,
+        SERIALIZE_TRANSACTION_WITNESS,
+    ));
+    Ok(convert_string_to_jstring(env, tx_hex))
+}
+
+/// Passing the previous transaction and the constructed transaction
+/// and the previous transaction outpoint index to calculate Sighash.
+/// agg_pubkey: required when spending by script, pass in a null value when spending by path
+/// sigversion: 0 or 1, 0 is Taproot, 1 is Tapscript.
+/// Returns: String.
+/// Return the sighash.
+/// Possible error string returned is `Compute Sighash Fail`.
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig2_Transaction_get_sighash(
+    env: JNIEnv,
+    _class: JClass,
+    prev_tx: JString,
+    tx: JString,
+    index: jlong,
+    agg_pubkey: JString,
+    sigversion: jlong,
+) -> jstring {
+    match r_get_sighash(env, prev_tx, tx, index as usize, agg_pubkey, sigversion) {
+        Ok(tx) => tx,
+        Err(_) => convert_string_to_jstring(env, Error::ComputeSighashFail.into()),
+    }
+}
+
+// Compute a signature hash for schnorr
+pub fn r_get_sighash(
+    env: JNIEnv,
+    prev_tx: JString,
+    tx: JString,
+    input_index: usize,
+    agg_pubkey: JString,
+    sigversion: jlong,
+) -> Result<jstring, Error> {
+    let prev_tx: String = env
+        .get_string(prev_tx)
+        .map_err(|_| Error::InvalidTxInput)?
+        .into();
+
+    let tx: String = env
+        .get_string(tx)
+        .map_err(|_| Error::InvalidTxInput)?
+        .into();
+
+    let prev_tx: Transaction = prev_tx.parse().map_err(|_| Error::InvalidTransaction)?;
+    let tx: Transaction = tx.parse().map_err(|_| Error::InvalidTransaction)?;
+
+    let signer: TransactionInputSigner = tx.clone().into();
+    let mut execdata = ScriptExecutionData::default();
+
+    let pre_index = tx.inputs[input_index].previous_output.index as usize;
+
+    let sighash = if sigversion == 1 {
+        let agg_pubkey = c_char_to_r_bytes(env, agg_pubkey)?;
+        if agg_pubkey.len() != 65 {
+            return Err(Error::InvalidPublicBytes);
+        }
+        let agg_pubkey = PublicKey::parse_slice(&agg_pubkey)?;
+        let script_pubkey = Builder::default()
+            .push_bytes(&agg_pubkey.x_coor().to_vec())
+            .push_opcode(Opcode::OP_CHECKSIG)
+            .into_script();
+
+        execdata.with_script(&script_pubkey);
+        signer.signature_hash_schnorr(
+            input_index,
+            &[prev_tx.outputs[pre_index].clone()],
+            SignatureVersion::TapScript,
+            0,
+            &execdata,
+        )
+    } else if sigversion == 0 {
+        signer.signature_hash_schnorr(
+            input_index,
+            &[prev_tx.outputs[pre_index].clone()],
+            SignatureVersion::Taproot,
+            0,
+            &execdata,
+        )
+    } else {
+        return Err(Error::InvalidSigversion);
+    };
+    let sighash_hex = hex::encode(&sighash);
+    Ok(convert_string_to_jstring(env, sighash_hex))
+}
+
+/// Construct Threshold address spending transaction.
+///
+/// [`base_tx`]: tx with at least one input and one output.
+/// [`agg_signature`]: aggregate signature of sighash
+/// [`agg_pubkey`]: signature corresponding to the aggregate public key.
+/// [`control`]: control script.
+/// [`input_index`]: index of the input in base_tx.
+///
+/// Returns: String.
+/// Return the tx hex string.
+/// Possible error string returned is `Construct Tx Fail`.
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig2_Transaction_build_raw_scirpt_tx(
+    env: JNIEnv,
+    _class: JClass,
+    base_tx: JString,
+    agg_signature: JString,
+    agg_pubkey: JString,
+    control: JString,
+    input_index: jlong,
+) -> jstring {
+    match r_build_raw_scirpt_tx(
+        env,
+        base_tx,
+        agg_signature,
+        agg_pubkey,
+        control,
+        input_index as usize,
+    ) {
+        Ok(tx) => tx,
+        Err(_) => convert_string_to_jstring(env, Error::ConstructTxFail.into()),
+    }
+}
+
+pub fn r_build_raw_scirpt_tx(
+    env: JNIEnv,
+    base_tx: JString,
+    agg_signature: JString,
+    agg_pubkey: JString,
+    control: JString,
+    input_index: usize,
+) -> Result<jstring, Error> {
+    let base_tx: String = env
+        .get_string(base_tx)
+        .map_err(|_| Error::InvalidTxInput)?
+        .into();
+    let mut base_tx: Transaction = base_tx.parse().map_err(|_| Error::InvalidTransaction)?;
+
+    let agg_signature: Bytes = c_char_to_r_bytes(env, agg_signature)?.into();
+    let control: Bytes = c_char_to_r_bytes(env, control)?.into();
+    let agg_pubkey = c_char_to_r_bytes(env, agg_pubkey)?;
+
+    if agg_signature.len() != 64 {
+        return Err(Error::InvalidSignature);
+    }
+    if agg_pubkey.len() != 65 {
+        return Err(Error::InvalidPublicBytes);
+    }
+
+    let pubkey = PublicKey::parse_slice(&agg_pubkey)?;
+
+    let script = Builder::default()
+        .push_bytes(&pubkey.x_coor().to_vec())
+        .push_opcode(Opcode::OP_CHECKSIG)
+        .into_script();
+
+    base_tx.inputs[input_index]
+        .script_witness
+        .push(agg_signature);
+    base_tx.inputs[input_index]
+        .script_witness
+        .push(script.to_bytes());
+    base_tx.inputs[input_index].script_witness.push(control);
+    let tx_hex = hex::encode(serialize_with_flags(
+        &base_tx,
+        SERIALIZE_TRANSACTION_WITNESS,
+    ));
+    Ok(convert_string_to_jstring(env, tx_hex))
+}
+
+/// Construct normal taproot address spending transaction.
+///
+/// [`base_tx`]: tx with at least one input and one output.
+/// [`signature`]: signature of sighash
+/// [`input_index`]: index of the input in base_tx.
+///
+/// Returns: String.
+/// Return the tx hex string.
+/// Possible error string returned is `Construct Tx Fail`.
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig2_Transaction_build_raw_key_tx(
+    env: JNIEnv,
+    _class: JClass,
+    base_tx: JString,
+    signature: JString,
+    input_index: jlong,
+) -> jstring {
+    match r_build_raw_key_tx(env, base_tx, signature, input_index as usize) {
+        Ok(tx) => tx,
+        Err(_) => convert_string_to_jstring(env, Error::ConstructTxFail.into()),
+    }
+}
+
+pub fn r_build_raw_key_tx(
+    env: JNIEnv,
+    base_tx: JString,
+    signature: JString,
+    input_index: usize,
+) -> Result<jstring, Error> {
+    let base_tx: String = env
+        .get_string(base_tx)
+        .map_err(|_| Error::InvalidTransaction)?
+        .into();
+    let mut base_tx: Transaction = base_tx.parse().map_err(|_| Error::InvalidTransaction)?;
+
+    let signature: Bytes = c_char_to_r_bytes(env, signature)?.into();
+
+    if signature.len() != 64 {
+        return Err(Error::InvalidSignature);
+    }
+
+    base_tx.inputs[input_index].script_witness.push(signature);
+
+    let tx_hex = hex::encode(serialize_with_flags(
+        &base_tx,
+        SERIALIZE_TRANSACTION_WITNESS,
+    ));
+    Ok(convert_string_to_jstring(env, tx_hex))
+}
+
+/// Generate schnorr signature.
+///
+/// [`message`]: waiting for signed message.
+/// [`privkey`]: private key
+/// [`aux`]: auxiliary random data.
+///
+/// Returns: String.
+/// Return the signature hex string.
+/// Possible error string returned is `Invalid Signature`.
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig2_Transaction_generate_schnorr_signature(
+    env: JNIEnv,
+    _class: JClass,
+    message: JString,
+    privkey: JString,
+) -> jstring {
+    match r_generate_schnorr_signature(env, message, privkey) {
+        Ok(d) => d,
+        Err(_) => convert_string_to_jstring(env, Error::InvalidSignature.into()),
+    }
+}
+
+pub fn r_generate_schnorr_signature(
+    env: JNIEnv,
+    message: JString,
+    privkey: JString,
+) -> Result<jstring, Error> {
+    let mut key: [u8; 32] = [0u8; 32];
+    OsRng.fill_bytes(&mut key);
+    let aux = H256::from_slice(&key);
+    let message = H256::from_slice(&c_char_to_r_bytes(env, message)?);
+    let privkey = secp256k1::SecretKey::parse_slice(&c_char_to_r_bytes(env, privkey)?)
+        .map_err(|_| Error::InvalidSecret)?;
+    let signature: [u8; 64] = sign_with_aux(message, aux, privkey)
+        .map_err(|_| Error::InvalidSignature)?
+        .into();
+    let sig = hex::encode(signature);
+    Ok(convert_string_to_jstring(env, sig))
+}
+
+/// Generate private key from mnemonic
+///
+/// [`phrase`]: root phrase
+/// [`pd_passphrase`]: pass phrase
+///
+/// Returns: String.
+/// Return the private key hex string.
+/// Possible error string returned is `Construct Secret Key`.
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig2_Transaction_get_my_privkey(
+    env: JNIEnv,
+    _class: JClass,
+    phrase: JString,
+    pd_passphrase: JString,
+) -> jstring {
+    match r_get_my_privkey(env, phrase, pd_passphrase) {
+        Ok(d) => d,
+        Err(_) => convert_string_to_jstring(env, Error::InvalidSecret.into()),
+    }
+}
+
+pub fn r_get_my_privkey(
+    env: JNIEnv,
+    phrase: JString,
+    pd_passphrase: JString,
+) -> Result<jstring, Error> {
+    let phrase: String = env
+        .get_string(phrase)
+        .map_err(|_| Error::InvalidPhrase)?
+        .into();
+    let pd_passphrase: String = env
+        .get_string(pd_passphrase)
+        .map_err(|_| Error::InvalidPhrase)?
+        .into();
+    let m = Mnemonic::from_str(&phrase).map_err(|_| Error::InvalidPhrase)?;
+    let seed = m.to_seed(&pd_passphrase);
+    let privkey = &seed[..32];
+    let c_tx_str = hex::encode(privkey);
+    Ok(convert_string_to_jstring(env, c_tx_str))
+}
+
+/// Generate scirpt pubkey from address
+///
+/// [`addr`]: input address
+///
+/// Returns: String.
+/// Return the scirpt pubkey hex string.
+/// Possible error string returned is `Invalid Address`.
+#[no_mangle]
+pub extern "system" fn Java_com_chainx_musig2_Transaction_get_scirpt_pubkey(
+    env: JNIEnv,
+    _class: JClass,
+    addr: JString,
+) -> jstring {
+    match r_get_scirpt_pubkey(env, addr) {
+        Ok(d) => d,
+        Err(_) => convert_string_to_jstring(env, Error::InvalidAddress.into()),
+    }
+}
+
+pub fn r_get_scirpt_pubkey(env: JNIEnv, addr: JString) -> Result<jstring, Error> {
+    let addr: String = env
+        .get_string(addr)
+        .map_err(|_| Error::InvalidAddress)?
+        .into();
+    let addr: Address = addr.parse().map_err(|_| Error::InvalidAddress)?;
+    let scirpt_pubkey: Bytes = Builder::build_address_types(&addr).into();
+    let c_tx_str = hex::encode(&scirpt_pubkey);
+    Ok(convert_string_to_jstring(env, c_tx_str))
 }
